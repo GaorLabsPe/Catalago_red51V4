@@ -918,6 +918,15 @@
             width: 100%;
             border-radius: 12px;
         }
+
+        .pedidos-table tr.row-updated {
+            animation: highlight-row 3s ease-out;
+        }
+
+        @keyframes highlight-row {
+            0% { background-color: #bfdbfe; }
+            100% { background-color: transparent; }
+        }
         
         @media (max-width: 768px) {
             .hero h1 {
@@ -1305,6 +1314,7 @@
         let configuracion = {};
         let mapa;
         let estadoPedidoActual = 'todos';
+        let pedidosChannel = null;
         const estadosPosibles = ['pendiente_pago', 'pago_confirmado', 'en_preparacion', 'enviado', 'entregado', 'cancelado'];
 
 
@@ -1404,6 +1414,7 @@
             cargarConfiguracionAdmin();
 
             mostrarVistaAdmin('pedidos');
+            suscribirACambiosPedidos();
         }
 
         function mostrarVistaAdmin(vista) {
@@ -1444,6 +1455,10 @@
         }
 
         async function cerrarSesion() {
+            if (pedidosChannel) {
+                supabaseClient.removeChannel(pedidosChannel);
+                pedidosChannel = null;
+            }
             await supabaseClient.auth.signOut();
             usuarioActual = null;
             document.getElementById('loginSection').style.display = 'block';
@@ -1755,7 +1770,7 @@
                 return;
             }
             tbody.innerHTML = pedidosFiltrados.map(p => `
-                <tr onclick="verDetallesPedido('${p.id}')">
+                <tr data-id="${p.id}" onclick="verDetallesPedido('${p.id}')">
                     <td>${p.numero_pedido || 'N/A'}</td>
                     <td>${new Date(p.fecha_pedido).toLocaleDateString()}</td>
                     <td>${p.nombre_cliente}</td>
@@ -1853,6 +1868,42 @@
             } catch(error) {
                 alert("Error al actualizar el estado: " + error.message);
             }
+        }
+
+        function suscribirACambiosPedidos() {
+            if (pedidosChannel) {
+                supabaseClient.removeChannel(pedidosChannel);
+                pedidosChannel = null;
+            }
+            pedidosChannel = supabaseClient
+                .channel('pedidos-db-changes')
+                .on(
+                    'postgres_changes',
+                    { event: 'UPDATE', schema: 'public', table: 'pedidos' },
+                    (payload) => {
+                        const pedidoActualizado = payload.new;
+                        const index = pedidos.findIndex(p => p.id === pedidoActualizado.id);
+                        if (index !== -1) {
+                            pedidos[index] = { ...pedidos[index], ...pedidoActualizado };
+                            renderizarPedidos();
+                            
+                            setTimeout(() => {
+                                const filaActualizada = document.querySelector(`tr[data-id="${pedidoActualizado.id}"]`);
+                                if (filaActualizada) {
+                                    filaActualizada.classList.add('row-updated');
+                                    setTimeout(() => {
+                                        filaActualizada.classList.remove('row-updated');
+                                    }, 3000);
+                                }
+                            }, 0);
+                        }
+                    }
+                )
+                .subscribe((status) => {
+                    if (status === 'SUBSCRIBED') {
+                        console.log('Conectado a cambios en tiempo real para pedidos.');
+                    }
+                });
         }
 
         function mostrarMapaPedido(lat, lon, cliente) {
