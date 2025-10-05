@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Red51 Technology - Tienda Online</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <style>
         * {
             margin: 0;
@@ -784,8 +785,12 @@
             color: var(--primary);
         }
         
-        .products-table tr:hover, .categories-table tr:hover, .pedidos-table tr:hover {
-            background: var(--light);
+        .products-table tr:hover, .categories-table tr:hover {
+            background: #f9fafb;
+        }
+
+        .pedidos-table tr:hover {
+            background: #f9fafb;
             cursor: pointer;
         }
         
@@ -888,6 +893,12 @@
             text-transform: capitalize;
         }
 
+        #mapa {
+            height: 450px;
+            width: 100%;
+            border-radius: 12px;
+        }
+
         .status-badge.pendiente_pago { background-color: var(--warning); }
         .status-badge.pago_confirmado { background-color: var(--info); }
         .status-badge.en_preparacion { background-color: var(--secondary); }
@@ -983,7 +994,8 @@
                     </p>
                     <ol class="setup-steps">
                         <li>Usa el <strong>SQL Editor</strong> en Supabase para crear las tablas <code>productos</code>, <code>categorias</code>, <code>configuracion</code> y <code>pedidos</code>.</li>
-                        <li>Asegúrate de configurar las <strong>Row Level Security (RLS) Policies</strong> para permitir el acceso público (lectura) a productos y categorías, y acceso de administrador (completo) a todas las tablas.</li>
+                        <li>Asegúrate de configurar las <strong>Row Level Security (RLS) Policies</strong> para permitir el acceso.</li>
+                        <li>Para la función de mapa, ejecuta el SQL para añadir <code>latitud</code> y <code>longitud</code> a la tabla <code>pedidos</code>.</li>
                     </ol>
                 </div>
                 <form id="loginForm" onsubmit="iniciarSesion(event)">
@@ -1032,6 +1044,7 @@
                         <div class="admin-header">
                             <h2>Historial de Pedidos</h2>
                         </div>
+                        <div id="pedidosFilterContainer" class="category-filter"></div>
                         <div style="overflow-x: auto;">
                             <table class="pedidos-table">
                                 <thead>
@@ -1244,12 +1257,25 @@
         </div>
     </div>
 
+    <div id="mapModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Ubicación de Entrega</h2>
+                <button class="close-btn" onclick="cerrarModalMapa()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="mapa"></div>
+            </div>
+        </div>
+    </div>
+
     <footer class="footer">
         <div class="footer-logo">Red51 TECHNOLOGY</div>
         <p>2025 Red51 Technology. Todos los derechos reservados.</p>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script>
         const SUPABASE_URL = 'https://zejzrujrspeoszpfbjce.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InplanpydWpyc3Blb3N6cGZiamNlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2MDMyNDMsImV4cCI6MjA3NTE3OTI0M30.UAi4jQ0BH1hphW7OEh4JWP4hdVJ4CmvX6x4CyP2ak-U';
@@ -1261,8 +1287,13 @@
         let categoriaActual = 'todos';
         let productos = [];
         let categorias = [];
+        let pedidos = [];
         let usuarioActual = null;
         let configuracion = {};
+        let mapa;
+        let estadoPedidoActual = 'todos';
+        const estadosPosibles = ['pendiente_pago', 'pago_confirmado', 'en_preparacion', 'enviado', 'entregado', 'cancelado'];
+
 
         async function inicializarSupabase() {
             supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -1354,7 +1385,6 @@
             document.getElementById('adminPanel').style.display = 'block';
             document.getElementById('adminEmail').textContent = usuarioActual.email;
             
-            // Cargar datos para todas las vistas del admin
             cargarPedidos();
             cargarProductosAdmin();
             cargarCategoriasAdmin();
@@ -1592,6 +1622,21 @@
             actualizarContadorCarrito();
             renderizarCarrito();
         }
+        
+        async function geocodeDireccion(direccion) {
+            try {
+                const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(direccion)}`);
+                if (!response.ok) throw new Error('Servicio de geocodificación no disponible');
+                const data = await response.json();
+                if (data && data.length > 0) {
+                    return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+                }
+                return null;
+            } catch (error) {
+                console.warn("No se pudo geocodificar la dirección:", error.message);
+                return null;
+            }
+        }
 
         async function realizarPedido(event) {
             event.preventDefault();
@@ -1601,12 +1646,15 @@
             
             const total = carrito.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
             const cantidad = carrito.reduce((sum, item) => sum + item.cantidad, 0);
+            const direccion = document.getElementById('direccionCliente').value;
+
+            const coords = await geocodeDireccion(direccion);
 
             const pedidoData = {
                 nombre_cliente: document.getElementById('nombreCliente').value,
                 telefono_cliente: document.getElementById('telefonoCliente').value,
                 email_cliente: document.getElementById('emailCliente').value || null,
-                direccion: document.getElementById('direccionCliente').value,
+                direccion: direccion,
                 productos: carrito.map(item => ({
                     id: item.id,
                     nombre: item.nombre, 
@@ -1617,7 +1665,9 @@
                 })),
                 total: parseFloat(total),
                 cantidad_items: cantidad,
-                estado: 'pendiente_pago' // Estado inicial
+                estado: 'pendiente_pago',
+                latitud: coords ? coords.lat : null,
+                longitud: coords ? coords.lon : null
             };
             
             try {
@@ -1644,41 +1694,64 @@
         async function cargarPedidos() {
             if (!supabaseClient) return;
             try {
-                const { data: pedidos, error } = await supabaseClient
+                const { data, error } = await supabaseClient
                     .from('pedidos')
                     .select('*')
                     .order('fecha_pedido', { ascending: false });
                 
                 if (error) throw error;
-
-                renderizarPedidos(pedidos || []);
+                pedidos = data || [];
+                renderizarFiltroEstados();
+                renderizarPedidos();
             } catch (error) {
                 console.error("Error al cargar pedidos:", error.message);
             }
         }
 
-        function renderizarPedidos(pedidos) {
-            // KPIs
-            const ingresosTotales = pedidos.reduce((sum, p) => sum + parseFloat(p.total), 0);
+        function renderizarFiltroEstados() {
+            const container = document.getElementById('pedidosFilterContainer');
+            const estados = ['todos', ...estadosPosibles];
+            container.innerHTML = estados.map(e => `
+                <button class="filter-btn ${e === estadoPedidoActual ? 'active' : ''}" onclick="filtrarPedidosPorEstado('${e}')">
+                    ${(e.charAt(0).toUpperCase() + e.slice(1)).replace(/_/g, ' ')}
+                </button>
+            `).join('');
+        }
+
+        function filtrarPedidosPorEstado(estado) {
+            estadoPedidoActual = estado;
+            renderizarFiltroEstados();
+            renderizarPedidos();
+        }
+
+        function renderizarPedidos() {
+            const pedidosFiltrados = estadoPedidoActual === 'todos'
+                ? pedidos
+                : pedidos.filter(p => p.estado === estadoPedidoActual);
+
+            const ingresosTotales = pedidosFiltrados.reduce((sum, p) => sum + parseFloat(p.total), 0);
             const pedidosPendientes = pedidos.filter(p => p.estado === 'pendiente_pago' || p.estado === 'pago_confirmado' || p.estado === 'en_preparacion').length;
             
             document.getElementById('kpiIngresos').textContent = `S/ ${ingresosTotales.toFixed(2)}`;
-            document.getElementById('kpiTotalPedidos').textContent = pedidos.length;
-            document.getElementById('kpiPendientes').textContent = pedidosPendientes;
+            document.getElementById('kpiTotalPedidos').textContent = pedidos.length; // Total general
+            document.getElementById('kpiPendientes').textContent = pedidosPendientes; // Total general
 
-            // Tabla
             const tbody = document.getElementById('adminPedidosTable');
-            if(pedidos.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 2rem;">No hay pedidos aún.</td></tr>`;
+            if(pedidosFiltrados.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 2rem;">No hay pedidos con este estado.</td></tr>`;
                 return;
             }
-            tbody.innerHTML = pedidos.map(p => `
+            tbody.innerHTML = pedidosFiltrados.map(p => `
                 <tr onclick="verDetallesPedido('${p.id}')">
                     <td>${p.numero_pedido || 'N/A'}</td>
                     <td>${new Date(p.fecha_pedido).toLocaleDateString()}</td>
                     <td>${p.nombre_cliente}</td>
                     <td>S/ ${parseFloat(p.total).toFixed(2)}</td>
-                    <td><span class="status-badge ${p.estado}">${p.estado.replace(/_/g, ' ')}</span></td>
+                    <td onclick="event.stopPropagation()">
+                         <select class="form-group" style="padding: 0.5rem; margin:0;" onchange="cambiarEstadoPedido('${p.id}', this.value)">
+                            ${estadosPosibles.map(e => `<option value="${e}" ${e === p.estado ? 'selected' : ''}>${e.replace(/_/g, ' ')}</option>`).join('')}
+                        </select>
+                    </td>
                 </tr>
             `).join('');
         }
@@ -1694,7 +1767,6 @@
                 if (error) throw error;
                 
                 const modalBody = document.getElementById('pedidoModalBody');
-                const estados = ['pendiente_pago', 'pago_confirmado', 'en_preparacion', 'enviado', 'entregado', 'cancelado'];
 
                 modalBody.innerHTML = `
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
@@ -1710,12 +1782,7 @@
                             <p><strong>N° Pedido:</strong> ${pedido.numero_pedido || 'N/A'}</p>
                             <p><strong>Fecha:</strong> ${new Date(pedido.fecha_pedido).toLocaleString()}</p>
                             <p><strong>Total:</strong> S/ ${parseFloat(pedido.total).toFixed(2)}</p>
-                            <div class="form-group" style="margin-top: 1rem;">
-                                <label for="estadoPedido"><strong>Estado del Pedido</strong></label>
-                                <select id="estadoPedido" onchange="cambiarEstadoPedido('${pedido.id}', this.value)">
-                                    ${estados.map(e => `<option value="${e}" ${e === pedido.estado ? 'selected' : ''}>${e.replace(/_/g, ' ')}</option>`).join('')}
-                                </select>
-                            </div>
+                            ${pedido.latitud && pedido.longitud ? `<button class="btn-secondary" style="width: 100%; margin-top: 1rem;" onclick="mostrarMapaPedido(${pedido.latitud}, ${pedido.longitud}, '${pedido.nombre_cliente}')">Ver Ubicación en Mapa</button>` : '<p style="margin-top: 1rem; color: var(--text-light);">Ubicación no disponible.</p>'}
                         </div>
                     </div>
                     <h4 style="margin-top: 2rem; margin-bottom: 1rem;">Productos</h4>
@@ -1751,11 +1818,43 @@
                 
                 if (error) throw error;
                 
-                mostrarNotificacion(`✅ Estado del pedido actualizado a: ${nuevoEstado.replace(/_/g, ' ')}`);
-                cargarPedidos();
+                mostrarNotificacion(`✅ Estado del pedido actualizado`);
+                // Actualizar localmente para reflejo inmediato
+                const pedidoIndex = pedidos.findIndex(p => p.id === pedidoId);
+                if (pedidoIndex !== -1) {
+                    pedidos[pedidoIndex].estado = nuevoEstado;
+                }
+                renderizarPedidos();
 
             } catch(error) {
                 alert("Error al actualizar el estado: " + error.message);
+            }
+        }
+
+        function mostrarMapaPedido(lat, lon, cliente) {
+            document.getElementById('mapModal').style.display = 'block';
+            
+            // Usamos un timeout para asegurar que el div del mapa sea visible antes de inicializarlo
+            setTimeout(() => {
+                if (mapa) {
+                    mapa.remove();
+                }
+                mapa = L.map('mapa').setView([lat, lon], 15);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '© OpenStreetMap'
+                }).addTo(mapa);
+                L.marker([lat, lon]).addTo(mapa)
+                    .bindPopup(`<b>Entrega para:</b><br>${cliente}`)
+                    .openPopup();
+            }, 100);
+        }
+
+        function cerrarModalMapa() {
+            document.getElementById('mapModal').style.display = 'none';
+            if (mapa) {
+                mapa.remove();
+                mapa = null;
             }
         }
 
@@ -2119,6 +2218,7 @@
             if (event.target == document.getElementById('productoModal')) cerrarModalProducto();
             if (event.target == document.getElementById('categoriaModal')) cerrarModalCategoria();
             if (event.target == document.getElementById('pedidoModal')) cerrarModalPedido();
+            if (event.target == document.getElementById('mapModal')) cerrarModalMapa();
         }
 
         inicializarSupabase();
