@@ -883,28 +883,41 @@
             color: var(--primary);
         }
         
-        .status-badge {
-            padding: 0.25rem 0.75rem;
-            border-radius: 12px;
-            font-size: 0.8rem;
+        .status-select {
+            padding: 0.5rem;
+            border-radius: 8px;
+            border: 1px solid transparent;
             font-weight: 600;
             color: var(--white);
-            display: inline-block;
             text-transform: capitalize;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-position: right 0.5rem center;
+            background-repeat: no-repeat;
+            background-size: 1.2em;
+            padding-right: 2.5em; /* space for the arrow */
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+            cursor: pointer;
         }
+
+        .status-select:focus {
+            outline: 2px solid var(--white);
+            outline-offset: -2px;
+        }
+
+        .status-select.pendiente_pago { background-color: var(--warning); }
+        .status-select.pago_confirmado { background-color: var(--info); }
+        .status-select.en_preparacion { background-color: var(--secondary); }
+        .status-select.enviado { background-color: var(--primary); }
+        .status-select.entregado { background-color: var(--success); }
+        .status-select.cancelado { background-color: var(--danger); }
 
         #mapa {
             height: 450px;
             width: 100%;
             border-radius: 12px;
         }
-
-        .status-badge.pendiente_pago { background-color: var(--warning); }
-        .status-badge.pago_confirmado { background-color: var(--info); }
-        .status-badge.en_preparacion { background-color: var(--secondary); }
-        .status-badge.enviado { background-color: var(--primary); }
-        .status-badge.entregado { background-color: var(--success); }
-        .status-badge.cancelado { background-color: var(--danger); }
         
         @media (max-width: 768px) {
             .hero h1 {
@@ -1748,7 +1761,7 @@
                     <td>${p.nombre_cliente}</td>
                     <td>S/ ${parseFloat(p.total).toFixed(2)}</td>
                     <td onclick="event.stopPropagation()">
-                         <select class="form-group" style="padding: 0.5rem; margin:0;" onchange="cambiarEstadoPedido('${p.id}', this.value)">
+                         <select class="status-select ${p.estado}" onchange="cambiarEstadoPedido('${p.id}', this.value)">
                             ${estadosPosibles.map(e => `<option value="${e}" ${e === p.estado ? 'selected' : ''}>${e.replace(/_/g, ' ')}</option>`).join('')}
                         </select>
                     </td>
@@ -1769,7 +1782,7 @@
                 const modalBody = document.getElementById('pedidoModalBody');
 
                 modalBody.innerHTML = `
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; flex-wrap: wrap;">
                         <div>
                             <h4>Datos del Cliente</h4>
                             <p><strong>Nombre:</strong> ${pedido.nombre_cliente}</p>
@@ -1782,6 +1795,12 @@
                             <p><strong>N° Pedido:</strong> ${pedido.numero_pedido || 'N/A'}</p>
                             <p><strong>Fecha:</strong> ${new Date(pedido.fecha_pedido).toLocaleString()}</p>
                             <p><strong>Total:</strong> S/ ${parseFloat(pedido.total).toFixed(2)}</p>
+                            <div class="form-group" style="margin-top: 1rem;">
+                                <label style="color: var(--text-dark);">Cambiar Estado</label>
+                                <select id="modalStatusSelect" class="status-select ${pedido.estado}" onchange="cambiarEstadoPedido('${pedido.id}', this.value)">
+                                    ${estadosPosibles.map(e => `<option value="${e}" ${e === pedido.estado ? 'selected' : ''}>${e.replace(/_/g, ' ')}</option>`).join('')}
+                                </select>
+                            </div>
                             ${pedido.latitud && pedido.longitud ? `<button class="btn-secondary" style="width: 100%; margin-top: 1rem;" onclick="mostrarMapaPedido(${pedido.latitud}, ${pedido.longitud}, '${pedido.nombre_cliente}')">Ver Ubicación en Mapa</button>` : '<p style="margin-top: 1rem; color: var(--text-light);">Ubicación no disponible.</p>'}
                         </div>
                     </div>
@@ -1819,12 +1838,17 @@
                 if (error) throw error;
                 
                 mostrarNotificacion(`✅ Estado del pedido actualizado`);
-                // Actualizar localmente para reflejo inmediato
                 const pedidoIndex = pedidos.findIndex(p => p.id === pedidoId);
                 if (pedidoIndex !== -1) {
                     pedidos[pedidoIndex].estado = nuevoEstado;
                 }
                 renderizarPedidos();
+
+                const modalSelect = document.getElementById('modalStatusSelect');
+                if (modalSelect) {
+                    modalSelect.className = `status-select ${nuevoEstado}`;
+                    modalSelect.value = nuevoEstado;
+                }
 
             } catch(error) {
                 alert("Error al actualizar el estado: " + error.message);
@@ -1834,7 +1858,6 @@
         function mostrarMapaPedido(lat, lon, cliente) {
             document.getElementById('mapModal').style.display = 'block';
             
-            // Usamos un timeout para asegurar que el div del mapa sea visible antes de inicializarlo
             setTimeout(() => {
                 if (mapa) {
                     mapa.remove();
