@@ -22,6 +22,8 @@
             --text-light: #6b7280;
             --success: #10b981;
             --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
             --border-color: #e5e7eb;
             --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
             --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.1);
@@ -638,6 +640,32 @@
             gap: 0.75rem;
             flex-wrap: wrap;
         }
+        
+        .admin-nav {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .admin-nav-btn {
+            padding: 0.75rem 1.5rem;
+            background: var(--light);
+            border: 1px solid var(--border-color);
+            color: var(--text-light);
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .admin-nav-btn.active {
+            background: var(--primary);
+            color: var(--white);
+            border-color: var(--primary);
+        }
+
 
         .btn-import {
             background: var(--accent);
@@ -737,26 +765,28 @@
             transform: none;
         }
         
-        .products-table, .categories-table {
+        .products-table, .categories-table, .pedidos-table {
             width: 100%;
             border-collapse: collapse;
         }
         
         .products-table th, .products-table td,
-        .categories-table th, .categories-table td {
+        .categories-table th, .categories-table td,
+        .pedidos-table th, .pedidos-table td {
             padding: 1rem;
             text-align: left;
             border-bottom: 1px solid var(--border-color);
         }
         
-        .products-table th, .categories-table th {
+        .products-table th, .categories-table th, .pedidos-table th {
             background: var(--light);
             font-weight: 700;
             color: var(--primary);
         }
         
-        .products-table tr:hover, .categories-table tr:hover {
+        .products-table tr:hover, .categories-table tr:hover, .pedidos-table tr:hover {
             background: var(--light);
+            cursor: pointer;
         }
         
         .table-actions {
@@ -820,6 +850,50 @@
         .setup-steps li {
             margin-bottom: 0.5rem;
         }
+
+        .kpi-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .kpi-card {
+            background: var(--white);
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+        }
+
+        .kpi-card-title {
+            font-size: 1rem;
+            color: var(--text-light);
+            margin-bottom: 0.5rem;
+        }
+
+        .kpi-card-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--white);
+            display: inline-block;
+            text-transform: capitalize;
+        }
+
+        .status-badge.pendiente_pago { background-color: var(--warning); }
+        .status-badge.pago_confirmado { background-color: var(--info); }
+        .status-badge.en_preparacion { background-color: var(--secondary); }
+        .status-badge.enviado { background-color: var(--primary); }
+        .status-badge.entregado { background-color: var(--success); }
+        .status-badge.cancelado { background-color: var(--danger); }
         
         @media (max-width: 768px) {
             .hero h1 {
@@ -845,7 +919,7 @@
                 font-size: 1.2rem;
             }
             
-            .products-table, .categories-table {
+            .products-table, .categories-table, .pedidos-table {
                 font-size: 0.85rem;
             }
         }
@@ -905,12 +979,11 @@
                         <li>Ingresa email, contraseña y confirma el email.</li>
                     </ol>
                     <p style="color: var(--text-light); font-size: 0.9rem; margin-top: 1.5rem; margin-bottom: 1rem;">
-                        <strong>Configuración Inicial (Requerido para la gestión de categorías):</strong>
+                        <strong>Configuración de Tablas (si aún no lo has hecho):</strong>
                     </p>
                     <ol class="setup-steps">
-                        <li><strong>Crear Tabla de Categorías:</strong> En Table Editor, crea una tabla llamada <code>categorias</code> con columnas: <code>id</code> (bigint, Primary Key, auto-incremental), <code>nombre</code> (text), <code>slug</code> (varchar).</li>
-                        <li><strong>Actualizar Tabla de Productos:</strong> Borra la columna <code>categoria</code> (varchar) de tu tabla <code>productos</code>. Crea una nueva columna <code>categoria_id</code> (bigint) y establece una <strong>foreign key</strong> que referencie a <code>categorias(id)</code>.</li>
-                        <li><strong>Permitir Acceso Público:</strong> Ve a Authentication → Policies y crea nuevas políticas para <code>categorias</code> y <code>configuracion</code> para permitir la lectura pública (SELECT) a todos los usuarios (rol: anon).</li>
+                        <li>Usa el <strong>SQL Editor</strong> en Supabase para crear las tablas <code>productos</code>, <code>categorias</code>, <code>configuracion</code> y <code>pedidos</code>.</li>
+                        <li>Asegúrate de configurar las <strong>Row Level Security (RLS) Policies</strong> para permitir el acceso público (lectura) a productos y categorías, y acceso de administrador (completo) a todas las tablas.</li>
                     </ol>
                 </div>
                 <form id="loginForm" onsubmit="iniciarSesion(event)">
@@ -928,72 +1001,123 @@
             </div>
 
             <div id="adminPanel" style="display:none;">
-                <div class="admin-section">
-                    <div class="admin-header">
-                        <h2>Personalización de la Tienda</h2>
-                        <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
-                            <span id="adminEmail" style="color: var(--text-light); font-size: 0.9rem;"></span>
-                            <button class="btn-danger" onclick="cerrarSesion()">Cerrar Sesion</button>
-                        </div>
-                    </div>
-                    <form id="configForm" onsubmit="guardarConfiguracion(event)">
-                        <div class="form-group">
-                            <label for="heroImageUrl">URL de la Imagen Principal (Hero)</label>
-                            <input type="url" id="heroImageUrl" placeholder="https://ejemplo.com/imagen.jpg">
-                            <div class="form-hint">Pega la URL de la imagen para la sección principal. Tamaño recomendado: 1920x1080px.</div>
-                        </div>
-                        <button type="submit" class="btn-primary" id="btnGuardarConfig">Guardar Cambios</button>
-                    </form>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
+                    <span id="adminEmail" style="color: var(--text-light); font-size: 0.9rem;"></span>
+                    <button class="btn-danger" onclick="cerrarSesion()">Cerrar Sesion</button>
                 </div>
 
-                <div class="admin-section">
-                    <div class="admin-header">
-                        <h2>Gestión de Categorías</h2>
-                        <button class="btn-secondary" onclick="abrirModalCategoria()">+ Agregar Categoría</button>
+                <div class="admin-nav">
+                    <button class="admin-nav-btn active" id="navBtnPedidos" onclick="mostrarVistaAdmin('pedidos')">Pedidos</button>
+                    <button class="admin-nav-btn" id="navBtnProductos" onclick="mostrarVistaAdmin('productos')">Productos</button>
+                    <button class="admin-nav-btn" id="navBtnCategorias" onclick="mostrarVistaAdmin('categorias')">Categorías</button>
+                    <button class="admin-nav-btn" id="navBtnConfig" onclick="mostrarVistaAdmin('config')">Configuración</button>
+                </div>
+
+                <div id="pedidosView" class="admin-view-content">
+                    <div class="kpi-container">
+                        <div class="kpi-card">
+                            <div class="kpi-card-title">Ingresos Totales</div>
+                            <div class="kpi-card-value" id="kpiIngresos">S/ 0.00</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-card-title">Pedidos Totales</div>
+                            <div class="kpi-card-value" id="kpiTotalPedidos">0</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-card-title">Pedidos Pendientes</div>
+                            <div class="kpi-card-value" id="kpiPendientes">0</div>
+                        </div>
                     </div>
-                     <div style="overflow-x: auto;">
-                        <table class="categories-table">
-                            <thead>
-                                <tr>
-                                    <th>Nombre</th>
-                                    <th>Slug</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody id="adminCategoriesTable"></tbody>
-                        </table>
+                     <div class="admin-section">
+                        <div class="admin-header">
+                            <h2>Historial de Pedidos</h2>
+                        </div>
+                        <div style="overflow-x: auto;">
+                            <table class="pedidos-table">
+                                <thead>
+                                    <tr>
+                                        <th>N° Pedido</th>
+                                        <th>Fecha</th>
+                                        <th>Cliente</th>
+                                        <th>Total</th>
+                                        <th>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminPedidosTable"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
-                <div class="admin-section">
-                    <div class="admin-header">
-                        <h2>Gestion de Productos</h2>
-                        <div class="admin-actions">
-                            <button class="btn-export" onclick="descargarPlantilla()">📥 Descargar Plantilla CSV</button>
-                            <button class="btn-import" onclick="document.getElementById('importFile').click()">📤 Importar CSV</button>
-                            <input type="file" id="importFile" accept=".csv" style="display:none;" onchange="importarProductos(event)">
-                            <button class="btn-secondary" onclick="abrirModalProducto()">+ Agregar Producto</button>
+                <div id="productosView" class="admin-view-content" style="display:none;">
+                    <div class="admin-section">
+                        <div class="admin-header">
+                            <h2>Gestion de Productos</h2>
+                            <div class="admin-actions">
+                                <button class="btn-export" onclick="descargarPlantilla()">📥 Descargar Plantilla CSV</button>
+                                <button class="btn-import" onclick="document.getElementById('importFile').click()">📤 Importar CSV</button>
+                                <input type="file" id="importFile" accept=".csv" style="display:none;" onchange="importarProductos(event)">
+                                <button class="btn-secondary" onclick="abrirModalProducto()">+ Agregar Producto</button>
+                            </div>
+                        </div>
+                        <div style="overflow-x: auto;">
+                            <table class="products-table">
+                                <thead>
+                                    <tr>
+                                        <th>Imagen</th>
+                                        <th>Icon</th>
+                                        <th>Nombre</th>
+                                        <th>Marca</th>
+                                        <th>Categoria</th>
+                                        <th>Precio</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminProductsTable"></tbody>
+                            </table>
                         </div>
                     </div>
-                    <div style="overflow-x: auto;">
-                        <table class="products-table">
-                            <thead>
-                                <tr>
-                                    <th>Imagen</th>
-                                    <th>Icon</th>
-                                    <th>Nombre</th>
-                                    <th>Marca</th>
-                                    <th>Categoria</th>
-                                    <th>Precio</th>
-                                    <th>Estado</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody id="adminProductsTable"></tbody>
-                        </table>
-                    </div>
-                    <div id="loadingAdmin" class="loading" style="display:none;">Cargando...</div>
                 </div>
+
+                <div id="categoriasView" class="admin-view-content" style="display:none;">
+                     <div class="admin-section">
+                        <div class="admin-header">
+                            <h2>Gestión de Categorías</h2>
+                            <button class="btn-secondary" onclick="abrirModalCategoria()">+ Agregar Categoría</button>
+                        </div>
+                         <div style="overflow-x: auto;">
+                            <table class="categories-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nombre</th>
+                                        <th>Slug</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminCategoriesTable"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="configView" class="admin-view-content" style="display:none;">
+                     <div class="admin-section">
+                        <div class="admin-header">
+                            <h2>Personalización de la Tienda</h2>
+                        </div>
+                        <form id="configForm" onsubmit="guardarConfiguracion(event)">
+                            <div class="form-group">
+                                <label for="heroImageUrl">URL de la Imagen Principal (Hero)</label>
+                                <input type="url" id="heroImageUrl" placeholder="https://ejemplo.com/imagen.jpg">
+                                <div class="form-hint">Pega la URL de la imagen para la sección principal. Tamaño recomendado: 1920x1080px.</div>
+                            </div>
+                            <button type="submit" class="btn-primary" id="btnGuardarConfig">Guardar Cambios</button>
+                        </form>
+                    </div>
+                </div>
+                
+                <div id="loadingAdmin" class="loading" style="display:none;">Cargando...</div>
             </div>
         </main>
     </div>
@@ -1009,7 +1133,7 @@
                 <div id="successMessage" class="success-message">
                     <div class="success-icon">✓</div>
                     <h3>Pedido Realizado con Exito</h3>
-                    <p>Hemos recibido tu pedido. Te contactaremos pronto por WhatsApp para coordinar el pago y la entrega.</p>
+                    <p>Hemos recibido tu pedido. Revisa el estado en tu cuenta o contactanos para coordinar la entrega.</p>
                     <button class="btn-primary" onclick="cerrarYLimpiar()">Continuar Comprando</button>
                 </div>
             </div>
@@ -1108,6 +1232,18 @@
         </div>
     </div>
 
+    <div id="pedidoModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="pedidoModalTitle">Detalles del Pedido</h2>
+                <button class="close-btn" onclick="cerrarModalPedido()">&times;</button>
+            </div>
+            <div class="modal-body" id="pedidoModalBody">
+                <!-- Content will be injected by JavaScript -->
+            </div>
+        </div>
+    </div>
+
     <footer class="footer">
         <div class="footer-logo">Red51 TECHNOLOGY</div>
         <p>2025 Red51 Technology. Todos los derechos reservados.</p>
@@ -1117,7 +1253,6 @@
     <script>
         const SUPABASE_URL = 'https://zejzrujrspeoszpfbjce.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InplanpydWpyc3Blb3N6cGZiamNlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2MDMyNDMsImV4cCI6MjA3NTE3OTI0M30.UAi4jQ0BH1hphW7OEh4JWP4hdVJ4CmvX6x4CyP2ak-U';
-        const N8N_WEBHOOK_URL = 'https://webhook.red51.site/webhook/pedidos_red51';
         const CLOUDINARY_CLOUD_NAME = 'dvj68er8s';
         const CLOUDINARY_UPLOAD_PRESET = 'red51_productos';
         
@@ -1218,9 +1353,22 @@
             document.getElementById('loginSection').style.display = 'none';
             document.getElementById('adminPanel').style.display = 'block';
             document.getElementById('adminEmail').textContent = usuarioActual.email;
+            
+            // Cargar datos para todas las vistas del admin
+            cargarPedidos();
             cargarProductosAdmin();
             cargarCategoriasAdmin();
             cargarConfiguracionAdmin();
+
+            mostrarVistaAdmin('pedidos');
+        }
+
+        function mostrarVistaAdmin(vista) {
+            document.querySelectorAll('.admin-view-content').forEach(v => v.style.display = 'none');
+            document.querySelectorAll('.admin-nav-btn').forEach(b => b.classList.remove('active'));
+
+            document.getElementById(`${vista}View`).style.display = 'block';
+            document.getElementById(`navBtn${vista.charAt(0).toUpperCase() + vista.slice(1)}`).classList.add('active');
         }
 
         function cargarConfiguracionAdmin() {
@@ -1451,29 +1599,35 @@
             btnPedido.disabled = true;
             btnPedido.textContent = 'Procesando pedido...';
             
+            const total = carrito.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
+            const cantidad = carrito.reduce((sum, item) => sum + item.cantidad, 0);
+
             const pedidoData = {
-                nombre: document.getElementById('nombreCliente').value,
-                telefono: document.getElementById('telefonoCliente').value,
-                email: document.getElementById('emailCliente').value || null,
+                nombre_cliente: document.getElementById('nombreCliente').value,
+                telefono_cliente: document.getElementById('telefonoCliente').value,
+                email_cliente: document.getElementById('emailCliente').value || null,
                 direccion: document.getElementById('direccionCliente').value,
                 productos: carrito.map(item => ({
-                    producto: item.nombre, marca: item.marca, cantidad: item.cantidad,
+                    id: item.id,
+                    nombre: item.nombre, 
+                    marca: item.marca, 
+                    cantidad: item.cantidad,
                     precio_unitario: parseFloat(item.precio),
                     subtotal: parseFloat(item.precio) * item.cantidad
                 })),
-                total: carrito.reduce((sum, item) => sum + (item.precio * item.cantidad), 0),
-                fecha: new Date().toISOString()
+                total: parseFloat(total),
+                cantidad_items: cantidad,
+                estado: 'pendiente_pago' // Estado inicial
             };
             
             try {
-                const response = await fetch(N8N_WEBHOOK_URL, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(pedidoData)
-                });
-                if (!response.ok) throw new Error('Error al enviar el pedido');
+                const { error } = await supabaseClient.from('pedidos').insert([pedidoData]);
+                if (error) throw error;
+
                 document.getElementById('cartContent').style.display = 'none';
                 document.getElementById('successMessage').style.display = 'block';
             } catch (error) {
-                alert('Error al realizar el pedido. Por favor, intenta nuevamente.');
+                alert('Error al realizar el pedido: ' + error.message);
                 btnPedido.disabled = false;
                 btnPedido.textContent = 'Realizar Pedido';
             }
@@ -1485,7 +1639,128 @@
             cerrarCarrito();
             document.getElementById('cartContent').style.display = 'block';
         }
+        
+        // --- ADMIN: Pedidos ---
+        async function cargarPedidos() {
+            if (!supabaseClient) return;
+            try {
+                const { data: pedidos, error } = await supabaseClient
+                    .from('pedidos')
+                    .select('*')
+                    .order('fecha_pedido', { ascending: false });
+                
+                if (error) throw error;
 
+                renderizarPedidos(pedidos || []);
+            } catch (error) {
+                console.error("Error al cargar pedidos:", error.message);
+            }
+        }
+
+        function renderizarPedidos(pedidos) {
+            // KPIs
+            const ingresosTotales = pedidos.reduce((sum, p) => sum + parseFloat(p.total), 0);
+            const pedidosPendientes = pedidos.filter(p => p.estado === 'pendiente_pago' || p.estado === 'pago_confirmado' || p.estado === 'en_preparacion').length;
+            
+            document.getElementById('kpiIngresos').textContent = `S/ ${ingresosTotales.toFixed(2)}`;
+            document.getElementById('kpiTotalPedidos').textContent = pedidos.length;
+            document.getElementById('kpiPendientes').textContent = pedidosPendientes;
+
+            // Tabla
+            const tbody = document.getElementById('adminPedidosTable');
+            if(pedidos.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 2rem;">No hay pedidos aún.</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = pedidos.map(p => `
+                <tr onclick="verDetallesPedido('${p.id}')">
+                    <td>${p.numero_pedido || 'N/A'}</td>
+                    <td>${new Date(p.fecha_pedido).toLocaleDateString()}</td>
+                    <td>${p.nombre_cliente}</td>
+                    <td>S/ ${parseFloat(p.total).toFixed(2)}</td>
+                    <td><span class="status-badge ${p.estado}">${p.estado.replace(/_/g, ' ')}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        async function verDetallesPedido(pedidoId) {
+            try {
+                const { data: pedido, error } = await supabaseClient
+                    .from('pedidos')
+                    .select('*')
+                    .eq('id', pedidoId)
+                    .single();
+                
+                if (error) throw error;
+                
+                const modalBody = document.getElementById('pedidoModalBody');
+                const estados = ['pendiente_pago', 'pago_confirmado', 'en_preparacion', 'enviado', 'entregado', 'cancelado'];
+
+                modalBody.innerHTML = `
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                        <div>
+                            <h4>Datos del Cliente</h4>
+                            <p><strong>Nombre:</strong> ${pedido.nombre_cliente}</p>
+                            <p><strong>Teléfono:</strong> ${pedido.telefono_cliente}</p>
+                            <p><strong>Email:</strong> ${pedido.email_cliente || 'No provisto'}</p>
+                            <p><strong>Dirección:</strong> ${pedido.direccion}</p>
+                        </div>
+                        <div>
+                            <h4>Resumen del Pedido</h4>
+                            <p><strong>N° Pedido:</strong> ${pedido.numero_pedido || 'N/A'}</p>
+                            <p><strong>Fecha:</strong> ${new Date(pedido.fecha_pedido).toLocaleString()}</p>
+                            <p><strong>Total:</strong> S/ ${parseFloat(pedido.total).toFixed(2)}</p>
+                            <div class="form-group" style="margin-top: 1rem;">
+                                <label for="estadoPedido"><strong>Estado del Pedido</strong></label>
+                                <select id="estadoPedido" onchange="cambiarEstadoPedido('${pedido.id}', this.value)">
+                                    ${estados.map(e => `<option value="${e}" ${e === pedido.estado ? 'selected' : ''}>${e.replace(/_/g, ' ')}</option>`).join('')}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <h4 style="margin-top: 2rem; margin-bottom: 1rem;">Productos</h4>
+                    ${(pedido.productos || []).map(p => `
+                        <div class="cart-item" style="padding: 1rem;">
+                           <div class="cart-item-info">
+                                <div class="cart-item-name">${p.nombre} (x${p.cantidad})</div>
+                                <div class="cart-item-brand">${p.marca}</div>
+                           </div>
+                           <div style="font-weight: 700; font-size: 1.1rem; color: var(--primary);">
+                                S/ ${parseFloat(p.subtotal).toFixed(2)}
+                           </div>
+                        </div>
+                    `).join('')}
+                `;
+                document.getElementById('pedidoModal').style.display = 'block';
+
+            } catch (error) {
+                alert("Error al cargar detalles del pedido: " + error.message);
+            }
+        }
+
+        function cerrarModalPedido() {
+             document.getElementById('pedidoModal').style.display = 'none';
+        }
+
+        async function cambiarEstadoPedido(pedidoId, nuevoEstado) {
+            try {
+                 const { error } = await supabaseClient
+                    .from('pedidos')
+                    .update({ estado: nuevoEstado })
+                    .eq('id', pedidoId);
+                
+                if (error) throw error;
+                
+                mostrarNotificacion(`✅ Estado del pedido actualizado a: ${nuevoEstado.replace(/_/g, ' ')}`);
+                cargarPedidos();
+
+            } catch(error) {
+                alert("Error al actualizar el estado: " + error.message);
+            }
+        }
+
+
+        // --- ADMIN: Productos y Categorías ---
         async function cargarProductosAdmin() {
             if (!supabaseClient) return;
             document.getElementById('loadingAdmin').style.display = 'block';
@@ -1501,7 +1776,7 @@
 
                 const tbody = document.getElementById('adminProductsTable');
                 tbody.innerHTML = productosAdmin.map(p => `
-                    <tr>
+                    <tr style="cursor: default;">
                         <td>${p.imagen_url ? `<img src="${p.imagen_url}" alt="${p.nombre}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;" onerror="this.style.display='none'">` : '<span style="font-size: 0.8rem; color: #999;">Sin imagen</span>'}</td>
                         <td style="font-size: 1.5rem;">${p.icon || '📦'}</td>
                         <td>${p.nombre}</td>
@@ -1521,7 +1796,6 @@
             }
         }
         
-        // --- Category CRUD ---
         async function cargarCategoriasAdmin() {
             if(!supabaseClient) return;
             try {
@@ -1529,7 +1803,7 @@
                 if (error) throw error;
                 const tbody = document.getElementById('adminCategoriesTable');
                 tbody.innerHTML = (data || []).map(cat => `
-                    <tr>
+                    <tr style="cursor: default;">
                         <td>${cat.nombre}</td>
                         <td>${cat.slug}</td>
                         <td class="table-actions">
@@ -1608,15 +1882,14 @@
 
         function generarSlug(text) {
             const slug = text.toString().toLowerCase()
-                .replace(/\s+/g, '-') // Replace spaces with -
-                .replace(/[^\w\-]+/g, '') // Remove all non-word chars
-                .replace(/\-\-+/g, '-') // Replace multiple - with single -
-                .replace(/^-+/, '') // Trim - from start of text
-                .replace(/-+$/, ''); // Trim - from end of text
+                .replace(/\s+/g, '-') 
+                .replace(/[^\w\-]+/g, '') 
+                .replace(/\-\-+/g, '-') 
+                .replace(/^-+/, '') 
+                .replace(/-+$/, ''); 
             document.getElementById('categoriaSlug').value = slug;
         }
 
-        // --- Product Modal ---
         function llenarSelectorCategoriasProducto() {
             const select = document.getElementById('productoCategoria');
             if (!select) return;
@@ -1845,6 +2118,7 @@
             if (event.target == document.getElementById('cartModal')) cerrarCarrito();
             if (event.target == document.getElementById('productoModal')) cerrarModalProducto();
             if (event.target == document.getElementById('categoriaModal')) cerrarModalCategoria();
+            if (event.target == document.getElementById('pedidoModal')) cerrarModalPedido();
         }
 
         inicializarSupabase();
