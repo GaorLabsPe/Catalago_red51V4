@@ -660,6 +660,18 @@
             gap: 1rem;
         }
 
+        .admin-search-container {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            flex-grow: 1;
+        }
+        
+        .admin-search-container input {
+            width: 100%;
+            max-width: 400px;
+        }
+
         .admin-actions {
             display: flex;
             gap: 0.75rem;
@@ -849,6 +861,13 @@
             border-radius: 12px;
             box-shadow: var(--shadow);
             border: 1px solid var(--border-color);
+            transition: all 0.3s;
+        }
+
+        .kpi-card[onclick]:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--secondary);
         }
 
         .kpi-card-title {
@@ -1186,6 +1205,10 @@
                             <div class="kpi-card-title">Pedidos Pendientes</div>
                             <div class="kpi-card-value" id="kpiPendientes">0</div>
                         </div>
+                        <div class="kpi-card" id="kpiBajosStock" onclick="verProductosBajosStock()" style="cursor: pointer; border-left: 4px solid var(--warning);">
+                            <div class="kpi-card-title">Productos Bajos de Stock</div>
+                            <div class="kpi-card-value">0</div>
+                        </div>
                     </div>
                      <div class="admin-section">
                         <div class="admin-header">
@@ -1214,6 +1237,10 @@
                     <div class="admin-section">
                         <div class="admin-header">
                             <h2>Gestion de Productos</h2>
+                            <div class="admin-search-container">
+                                <input type="text" id="productSearchInput" placeholder="Buscar por nombre o marca..." oninput="renderizarProductosAdmin()">
+                                <button id="clearProductFilterBtn" class="btn-secondary" style="display: none;" onclick="limpiarFiltroProductos()">Limpiar</button>
+                            </div>
                             <div class="admin-actions">
                                 <button class="btn-export" onclick="descargarPlantilla()">📥 Descargar Plantilla XLS</button>
                                 <button class="btn-import" onclick="document.getElementById('importFile').click()">📤 Importar Archivo</button>
@@ -1594,6 +1621,7 @@ NOTIFY pgrst_reload_schema;
         let supabaseClient = null;
         let categoriaActual = 'todos';
         let productos = [];
+        let productosAdmin = [];
         let categorias = [];
         let pedidos = [];
         let usuarioActual = null;
@@ -1606,6 +1634,7 @@ NOTIFY pgrst_reload_schema;
         let productoSeleccionado = null;
         const estadosPosibles = ['pendiente_pago', 'pago_confirmado', 'en_preparacion', 'enviado', 'entregado', 'cancelado'];
         let currentVariantPreviewElement = null;
+        let isLowStockFilterActive = false;
 
         async function inicializarSupabase() {
             supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -1786,20 +1815,13 @@ NOTIFY pgrst_reload_schema;
             try {
                 const { data, error } = await supabaseClient
                     .from('productos')
-                    .select('*')
+                    .select('*, categorias(nombre, slug)')
                     .eq('activo', true)
                     .order('nombre');
 
                 if (error) throw error;
                 
-                const productosData = data || [];
-                productos = productosData.map(p => {
-                    const categoria = categorias.find(c => c.id === p.categoria_id);
-                    return {
-                        ...p,
-                        categorias: categoria ? { nombre: categoria.nombre, slug: categoria.slug } : null 
-                    };
-                });
+                productos = data || [];
                 
                 if (productos.length === 0) {
                     document.getElementById('productsGrid').innerHTML = 
@@ -2477,46 +2499,91 @@ NOTIFY pgrst_reload_schema;
             if (!supabaseClient) return;
             document.getElementById('loadingAdmin').style.display = 'block';
             try {
-                const { data, error } = await supabaseClient.from('productos').select('*').order('nombre');
+                const { data, error } = await supabaseClient.from('productos').select('*, categorias(nombre)').order('nombre');
                 if (error) throw error;
                 
-                const productosAdminData = data || [];
-                const productosAdmin = productosAdminData.map(p => {
-                    const categoria = categorias.find(c => c.id === p.categoria_id);
-                    return {
-                        ...p,
-                        categorias: categoria ? { nombre: categoria.nombre } : null
-                    };
-                });
+                productosAdmin = (data || []).map(p => ({
+                    ...p,
+                    categorias: p.categorias ? { nombre: p.categorias.nombre } : null
+                }));
 
-                const tbody = document.getElementById('adminProductsTable');
-                tbody.innerHTML = productosAdmin.map(p => {
-                    let imagenPrincipal = p.imagen_url;
-                    if (p.variantes && p.variantes.length > 0) {
-                        const primeraOpcionConImagen = p.variantes.flatMap(v => v.opciones || []).find(o => o.imagen_url);
-                        if (primeraOpcionConImagen) imagenPrincipal = primeraOpcionConImagen.imagen_url;
-                    }
+                const bajosStock = productosAdmin.filter(p => p.stock > 0 && p.stock <= 5).length;
+                const kpiCard = document.getElementById('kpiBajosStock');
+                if (kpiCard) {
+                    kpiCard.querySelector('.kpi-card-value').textContent = bajosStock;
+                }
 
-                    return `
-                    <tr style="cursor: default;">
-                        <td>${imagenPrincipal ? `<img src="${optimizarImagenUrl(imagenPrincipal, 50)}" alt="${p.nombre}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;" onerror="this.style.display='none'">` : '<span style="font-size: 0.8rem; color: #999;">Sin imagen</span>'}</td>
-                        <td>${p.nombre}</td>
-                        <td>${p.categorias ? p.categorias.nombre : 'Sin categoría'}</td>
-                        <td>S/ ${parseFloat(p.precio).toFixed(2)}</td>
-                        <td style="font-weight: 600; color: ${p.stock <= 5 ? 'var(--danger)' : 'var(--text-dark)'}">${p.stock}</td>
-                        <td>${p.variantes && p.variantes.length > 0 ? `${p.variantes.length} tipo(s)` : 'No'}</td>
-                        <td>${p.activo ? 'Activo' : 'Inactivo'}</td>
-                        <td class="table-actions">
-                            <button class="btn-edit" onclick="editarProducto(${p.id}, event)">Editar</button>
-                            <button class="btn-danger" onclick="eliminarProducto(${p.id}, event)">Eliminar</button>
-                        </td>
-                    </tr>`
-                }).join('');
+                renderizarProductosAdmin();
             } catch (error) {
                 alert('Error al cargar productos: ' + error.message);
             } finally {
                 document.getElementById('loadingAdmin').style.display = 'none';
             }
+        }
+
+        function renderizarProductosAdmin() {
+            const tbody = document.getElementById('adminProductsTable');
+            const searchTerm = document.getElementById('productSearchInput').value.toLowerCase();
+            const clearBtn = document.getElementById('clearProductFilterBtn');
+
+            let productosFiltrados = productosAdmin;
+
+            if (isLowStockFilterActive) {
+                productosFiltrados = productosFiltrados.filter(p => p.stock > 0 && p.stock <= 5);
+            }
+            
+            if (searchTerm) {
+                productosFiltrados = productosFiltrados.filter(p => 
+                    p.nombre.toLowerCase().includes(searchTerm) || 
+                    (p.marca && p.marca.toLowerCase().includes(searchTerm))
+                );
+            }
+            
+            if (isLowStockFilterActive || searchTerm) {
+                clearBtn.style.display = 'inline-block';
+            } else {
+                clearBtn.style.display = 'none';
+            }
+            
+            if (productosFiltrados.length === 0) {
+                 tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 2rem;">No se encontraron productos con los filtros actuales.</td></tr>`;
+                 return;
+            }
+
+            tbody.innerHTML = productosFiltrados.map(p => {
+                let imagenPrincipal = p.imagen_url;
+                if (p.variantes && p.variantes.length > 0) {
+                    const primeraOpcionConImagen = p.variantes.flatMap(v => v.opciones || []).find(o => o.imagen_url);
+                    if (primeraOpcionConImagen) imagenPrincipal = primeraOpcionConImagen.imagen_url;
+                }
+
+                return `
+                <tr style="cursor: default;">
+                    <td>${imagenPrincipal ? `<img src="${optimizarImagenUrl(imagenPrincipal, 50)}" alt="${p.nombre}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;" onerror="this.style.display='none'">` : '<span style="font-size: 0.8rem; color: #999;">Sin imagen</span>'}</td>
+                    <td>${p.nombre}</td>
+                    <td>${p.categorias ? p.categorias.nombre : 'Sin categoría'}</td>
+                    <td>S/ ${parseFloat(p.precio).toFixed(2)}</td>
+                    <td style="font-weight: 600; color: ${p.stock <= 5 ? 'var(--danger)' : 'var(--text-dark)'}">${p.stock}</td>
+                    <td>${p.variantes && p.variantes.length > 0 ? `${p.variantes.length} tipo(s)` : 'No'}</td>
+                    <td>${p.activo ? 'Activo' : 'Inactivo'}</td>
+                    <td class="table-actions">
+                        <button class="btn-edit" onclick="editarProducto(${p.id}, event)">Editar</button>
+                        <button class="btn-danger" onclick="eliminarProducto(${p.id}, event)">Eliminar</button>
+                    </td>
+                </tr>`
+            }).join('');
+        }
+
+        function verProductosBajosStock() {
+            isLowStockFilterActive = true;
+            mostrarVistaAdmin('productos');
+            renderizarProductosAdmin();
+        }
+
+        function limpiarFiltroProductos() {
+            document.getElementById('productSearchInput').value = '';
+            isLowStockFilterActive = false;
+            renderizarProductosAdmin();
         }
         
         async function cargarCategoriasAdmin() {
