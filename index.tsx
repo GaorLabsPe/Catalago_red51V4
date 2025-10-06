@@ -547,7 +547,7 @@ function renderizarCarrito() {
             <span class="cart-total-label">Total:</span>
             <span class="cart-total-amount">S/ ${total.toFixed(2)}</span>
         </div>
-        <form class="checkout-form" onsubmit="realizarPedido(event)">
+        <form class="checkout-form">
             <div class="form-group"><label>Nombre Completo</label><input type="text" id="nombreCliente" required></div>
             <div class="form-group"><label>Telefono (sin prefijo +51)</label><input type="tel" id="telefonoCliente" required placeholder="905820448"></div>
             <div class="form-group"><label>Email (Opcional)</label><input type="email" id="emailCliente" placeholder="cliente@ejemplo.com"></div>
@@ -560,7 +560,7 @@ function renderizarCarrito() {
                     <button type="button" class="btn-secondary" style="font-size: 0.9rem;" onclick="seleccionarUbicacionEnMapa()">🗺️ Seleccionar en el mapa</button>
                 </div>
             </div>
-            <button type="submit" class="btn-primary" id="btnRealizarPedido">Realizar Pedido</button>
+            <button type="button" class="btn-primary" id="btnRealizarPedido" onclick="realizarPedido()">Realizar Pedido</button>
         </form>`;
 }
 
@@ -650,24 +650,28 @@ function seleccionarUbicacionEnMapa() {
 }
 window.seleccionarUbicacionEnMapa = seleccionarUbicacionEnMapa;
 
-async function realizarPedido(event) {
-    event.preventDefault();
+async function realizarPedido() {
+    const btnPedido = document.getElementById('btnRealizarPedido') as HTMLButtonElement;
 
-    if (isProcessingOrder) {
-        return; // Bloquea envíos duplicados si uno ya está en proceso
+    // The only lock: check if the button is already disabled.
+    if (btnPedido.disabled) {
+        console.warn("Intento de envío duplicado bloqueado.");
+        return;
     }
 
-    const btnPedido = document.getElementById('btnRealizarPedido') as HTMLButtonElement;
     const cartParaPedido = [...carrito];
 
     try {
-        isProcessingOrder = true; // Activa el "candado"
+        // Lock the UI immediately
         btnPedido.disabled = true;
         btnPedido.textContent = 'Procesando pedido...';
 
         if (cartParaPedido.length === 0) {
             mostrarNotificacion('⚠️ Tu carrito está vacío.');
-            return; // El bloque finally se encargará de re-renderizar
+            // Unlock on early exit
+            btnPedido.disabled = false;
+            btnPedido.textContent = 'Realizar Pedido';
+            return;
         }
 
         const nombre = (document.getElementById('nombreCliente') as HTMLInputElement).value;
@@ -677,11 +681,14 @@ async function realizarPedido(event) {
         let latitud = (document.getElementById('latitudCliente') as HTMLInputElement).value;
         let longitud = (document.getElementById('longitudCliente') as HTMLInputElement).value;
 
-        // Vacía el carrito de la UI inmediatamente
+        // Clear the global state. This is the second line of defense.
+        // After this point, any phantom call will find an empty cart.
         carrito = [];
         actualizarContadorCarrito();
+        
+        // We don't re-render the cart here yet, because we need the form to stay visible
+        // while we geocode. We'll show the success message at the end.
 
-        // Operación asíncrona (la causa del problema original)
         if (!latitud || !longitud) {
             const coords = await geocodeDireccion(direccion);
             if (coords) {
@@ -689,7 +696,7 @@ async function realizarPedido(event) {
                 longitud = coords.lon.toString();
             }
         }
-
+        
         const total = cartParaPedido.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
         const cantidad = cartParaPedido.reduce((sum, item) => sum + item.cantidad, 0);
 
@@ -726,7 +733,7 @@ async function realizarPedido(event) {
             .single();
 
         if (error) throw error;
-
+        
         try {
             await fetch('https://webhook.red51.site/webhook/pedidos_red51', {
                 method: 'POST',
@@ -737,23 +744,16 @@ async function realizarPedido(event) {
             console.warn('El pedido se guardó, pero falló el envío al webhook:', (webhookError as Error).message);
         }
 
+        // Success: Show the success message. The form and button will be hidden.
         document.getElementById('cartContent').style.display = 'none';
         document.getElementById('successMessage').style.display = 'block';
 
     } catch (error) {
-        // Si ocurre un error, restaura el carrito para que el usuario no pierda sus productos
+        // Error: Restore state and re-render the cart, which will create a new, enabled button.
         carrito = cartParaPedido;
         actualizarContadorCarrito();
+        renderizarCarrito(); // This re-renders the form and button.
         alert('Error al realizar el pedido: ' + (error as Error).message);
-    } finally {
-        isProcessingOrder = false; // Libera el "candado", permitiendo un nuevo envío si es necesario
-        
-        // Si el mensaje de éxito no está visible, significa que el pedido falló o el carrito estaba vacío.
-        // En ese caso, se vuelve a renderizar el carrito, lo que reactiva el botón de envío.
-        const successMessage = document.getElementById('successMessage') as HTMLElement;
-        if (successMessage.style.display !== 'block') {
-            renderizarCarrito();
-        }
     }
 }
 window.realizarPedido = realizarPedido;
