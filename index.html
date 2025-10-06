@@ -1099,7 +1099,6 @@
 
         .lote-item {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr auto;
             gap: 1rem;
             align-items: center;
             padding: 1rem;
@@ -1425,67 +1424,158 @@
                 </div>
                 
                 <div id="reportesView" class="admin-view-content" style="display:none;">
-                    <div class="admin-section">
-                        <div class="admin-header" style="align-items: flex-end;">
-                            <h2>Reporte de Ventas y Ganancias</h2>
-                            <div class="admin-actions">
-                                <button class="btn-export" onclick="exportarReporteExcel()">📊 Exportar a Excel</button>
-                            </div>
-                        </div>
-                        <div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
-                            <div class="form-group" style="margin: 0;">
-                                <label>Desde</label>
-                                <input type="date" id="reporteFechaInicio">
-                            </div>
-                            <div class="form-group" style="margin: 0;">
-                                <label>Hasta</label>
-                                <input type="date" id="reporteFechaFin">
-                            </div>
-                            <button class="btn-primary" style="width: auto; padding: 1rem 2rem; align-self: flex-end;" onclick="generarReporteVentas()">Generar Reporte</button>
-                        </div>
+                    <div class="admin-nav" id="reportesNav" style="margin-bottom: 0; border-bottom: none;">
+                        <button class="admin-nav-btn active" id="navBtnResumenVentas" onclick="mostrarSubVistaReporte('resumen')">Resumen de Ventas</button>
+                        <button class="admin-nav-btn" id="navBtnVentasProducto" onclick="mostrarSubVistaReporte('porProducto')">Ventas por Producto</button>
+                        <button class="admin-nav-btn" id="navBtnCompras" onclick="mostrarSubVistaReporte('compras')">Historial de Compras</button>
                     </div>
-                    
-                    <div class="kpi-container">
-                        <div class="kpi-card">
-                            <div class="kpi-card-title">Ingresos Totales (Venta)</div>
-                            <div class="kpi-card-value" id="reporteKpiIngresos">S/ 0.00</div>
+
+                    <!-- Reporte: Resumen de Ventas -->
+                    <div id="reporteResumenView" class="reporte-subview">
+                        <div class="admin-section">
+                            <div class="admin-header" style="align-items: flex-end;">
+                                <h2>Reporte de Ventas y Ganancias</h2>
+                                <div class="admin-actions">
+                                    <button class="btn-export" onclick="exportarReporteExcel()">📊 Exportar a Excel</button>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; align-items: flex-end;">
+                                <div class="form-group" style="margin: 0;">
+                                    <label>Desde</label>
+                                    <input type="date" id="reporteFechaInicio">
+                                </div>
+                                <div class="form-group" style="margin: 0;">
+                                    <label>Hasta</label>
+                                    <input type="date" id="reporteFechaFin">
+                                </div>
+                                <button class="btn-primary" style="width: auto; padding: 1rem 2rem;" onclick="generarReporteVentas()">Generar Reporte</button>
+                            </div>
                         </div>
-                        <div class="kpi-card">
-                            <div class="kpi-card-title">Costo Total de Ventas</div>
-                            <div class="kpi-card-value" id="reporteKpiCosto">S/ 0.00</div>
+                        
+                        <div class="kpi-container">
+                            <div class="kpi-card">
+                                <div class="kpi-card-title">Ingresos Totales (Venta)</div>
+                                <div class="kpi-card-value" id="reporteKpiIngresos">S/ 0.00</div>
+                            </div>
+                            <div class="kpi-card">
+                                <div class="kpi-card-title">Costo Total de Ventas</div>
+                                <div class="kpi-card-value" id="reporteKpiCosto">S/ 0.00</div>
+                            </div>
+                            <div class="kpi-card" style="border-left: 4px solid var(--success);">
+                                <div class="kpi-card-title">Ganancia Bruta</div>
+                                <div class="kpi-card-value" id="reporteKpiGanancia">S/ 0.00</div>
+                            </div>
+                            <div class="kpi-card" style="border-left: 4px solid var(--info);">
+                                <div class="kpi-card-title">Margen de Ganancia</div>
+                                <div class="kpi-card-value" id="reporteKpiMargen">0.00 %</div>
+                            </div>
                         </div>
-                        <div class="kpi-card" style="border-left: 4px solid var(--success);">
-                            <div class="kpi-card-title">Ganancia Bruta</div>
-                            <div class="kpi-card-value" id="reporteKpiGanancia">S/ 0.00</div>
-                        </div>
-                        <div class="kpi-card" style="border-left: 4px solid var(--info);">
-                            <div class="kpi-card-title">Margen de Ganancia</div>
-                            <div class="kpi-card-value" id="reporteKpiMargen">0.00 %</div>
+
+                        <div class="admin-section">
+                            <div style="overflow-x: auto;">
+                                <table class="admin-table reportes-table">
+                                    <thead>
+                                        <tr>
+                                            <th>N° Pedido</th>
+                                            <th>Fecha</th>
+                                            <th>Cliente</th>
+                                            <th>Producto</th>
+                                            <th>Cant.</th>
+                                            <th>Total Venta</th>
+                                            <th>Costo Total</th>
+                                            <th>Ganancia</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="reportesTableBody">
+                                        <tr><td colspan="8" style="text-align: center; padding: 2rem;">Selecciona un rango de fechas y genera un reporte.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="admin-section">
-                        <div style="overflow-x: auto;">
-                            <table class="admin-table reportes-table">
-                                <thead>
-                                    <tr>
-                                        <th>N° Pedido</th>
-                                        <th>Fecha</th>
-                                        <th>Cliente</th>
-                                        <th>Producto</th>
-                                        <th>Cant.</th>
-                                        <th>Total Venta</th>
-                                        <th>Costo Total</th>
-                                        <th>Ganancia</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="reportesTableBody">
-                                    <tr><td colspan="8" style="text-align: center; padding: 2rem;">Selecciona un rango de fechas y genera un reporte.</td></tr>
-                                </tbody>
-                            </table>
+                    <!-- Reporte: Ventas por Producto -->
+                    <div id="reportePorProductoView" class="reporte-subview" style="display:none;">
+                        <div class="admin-section">
+                            <div class="admin-header" style="align-items: flex-end;">
+                                <h2>Reporte de Ventas por Producto</h2>
+                            </div>
+                            <div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; align-items: flex-end;">
+                                <div class="form-group" style="flex-grow: 1; min-width: 250px; margin:0;">
+                                    <label>Producto</label>
+                                    <select id="reporteProductoSelect"><option>Cargando productos...</option></select>
+                                </div>
+                                <div class="form-group" style="margin: 0;">
+                                    <label>Desde</label>
+                                    <input type="date" id="reporteProductoFechaInicio">
+                                </div>
+                                <div class="form-group" style="margin: 0;">
+                                    <label>Hasta</label>
+                                    <input type="date" id="reporteProductoFechaFin">
+                                </div>
+                                <button class="btn-primary" style="width: auto; padding: 1rem 2rem;" onclick="generarReporteVentasPorProducto()">Generar Reporte</button>
+                            </div>
+                        </div>
+                        <div class="admin-section">
+                             <div style="overflow-x: auto;">
+                                <table class="admin-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Fecha</th>
+                                            <th>N° Pedido</th>
+                                            <th>Cliente</th>
+                                            <th>Cantidad Vendida</th>
+                                            <th>Total Venta</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="reporteVentasPorProductoTableBody">
+                                        <tr><td colspan="5" style="text-align: center; padding: 2rem;">Selecciona un producto y rango de fechas.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reporte: Historial de Compras -->
+                    <div id="reporteComprasView" class="reporte-subview" style="display:none;">
+                        <div class="admin-section">
+                            <div class="admin-header" style="align-items: flex-end;">
+                                <h2>Historial de Compras (Ingresos de Stock)</h2>
+                            </div>
+                            <div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; align-items: flex-end;">
+                                <div class="form-group" style="margin: 0;">
+                                    <label>Desde</label>
+                                    <input type="date" id="reporteComprasFechaInicio">
+                                </div>
+                                <div class="form-group" style="margin: 0;">
+                                    <label>Hasta</label>
+                                    <input type="date" id="reporteComprasFechaFin">
+                                </div>
+                                <button class="btn-primary" style="width: auto; padding: 1rem 2rem;" onclick="generarReporteCompras()">Generar Reporte</button>
+                            </div>
+                        </div>
+                        <div class="admin-section">
+                             <div style="overflow-x: auto;">
+                                <table class="admin-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Fecha Ingreso</th>
+                                            <th>Producto</th>
+                                            <th>Cantidad</th>
+                                            <th>N° Factura/Comprobante</th>
+                                            <th>Proveedor</th>
+                                            <th>Registrado por</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="reporteComprasTableBody">
+                                        <tr><td colspan="6" style="text-align: center; padding: 2rem;">Selecciona un rango de fechas para ver el historial de compras.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
+
 
                 <div id="configView" class="admin-view-content" style="display:none;">
                      <div class="admin-section">
@@ -1512,22 +1602,26 @@
                         <p>¡Bienvenido al panel de control de tu tienda! Sigue estos pasos para poner todo en marcha:</p>
                         <ol>
                             <li><strong>Crea tus Categorías:</strong> Ve a la pestaña <strong>"Categorías"</strong> y añade las secciones para tus productos (ej: Laptops, Accesorios, Smartphones).</li>
-                            <li><strong>Añade tus Productos:</strong> En la pestaña <strong>"Productos"</strong>, haz clic en "+ Agregar Producto" para definir sus detalles (nombre, precio, etc.).</li>
-                            <li><strong>Gestiona el Inventario (¡Nuevo!):</strong> Ve al nuevo módulo de <strong>"Inventario"</strong>. Desde allí, puedes registrar nuevos ingresos de stock para cada producto, incluyendo número de lote, fecha de vencimiento, y ahora, el N° de factura/comprobante y el proveedor para una trazabilidad completa.</li>
-                            <li><strong>Analiza tus Ventas:</strong> En la pestaña <strong>"Reportes"</strong>, selecciona un rango de fechas para ver tus ingresos, costos y ganancias.</li>
-                            <li><strong>Gestiona tus Pedidos:</strong> Cuando recibas una venta, aparecerá en la pestaña <strong>"Pedidos"</strong>. Al cambiar el estado a "Pago Confirmado" o "En Preparación", el stock se descontará automáticamente siguiendo la estrategia FEFO y se creará un registro de auditoría en el historial de movimientos del producto.</li>
+                            <li><strong>Añade tus Productos:</strong> En la pestaña <strong>"Productos"</strong>, haz clic en "+ Agregar Producto". Aquí podrás definir si un producto requiere seguimiento por lotes con la nueva casilla <strong>"Gestionar por Lotes"</strong>.</li>
+                            <li><strong>Gestiona el Inventario:</strong> Ve al módulo de <strong>"Inventario"</strong>. Desde allí, puedes registrar nuevos ingresos de stock. Si un producto no es gestionado por lotes, el formulario será más simple y solo pedirá la cantidad.</li>
+                            <li><strong>Analiza tus Ventas:</strong> En la nueva pestaña <strong>"Reportes"</strong>, puedes explorar el resumen de ganancias, el historial de ventas por cada producto o el registro de todas tus compras.</li>
+                            <li><strong>Gestiona tus Pedidos:</strong> Cuando recibas una venta, aparecerá en la pestaña <strong>"Pedidos"</strong>. Al cambiar el estado a "Pago Confirmado" o "En Preparación", el stock se descontará automáticamente.</li>
                         </ol>
                     </div>
                     <div class="help-card">
                         <h3>🤔 Preguntas Frecuentes (FAQ)</h3>
                         <ul>
                             <li>
-                                <strong>¿Qué es el nuevo Módulo de Inventario?</strong>
-                                <p>Es un centro de control dedicado para todo lo relacionado con tu stock. Te permite ver el valor total de tu inventario, cuántas unidades tienes, y lo más importante: un <strong>historial de movimientos de auditoría</strong> para cada producto. Ahora puedes rastrear cada unidad desde que ingresa con una factura de compra hasta que sale en un pedido de venta.</p>
+                                <strong>¿Para qué sirve la opción "Gestionar por Lotes"?</strong>
+                                <p>Esta opción te da flexibilidad. Para productos de alto valor, electrónicos con número de serie o productos con fecha de vencimiento, mantenla activada para una trazabilidad completa. Para productos más simples como cables, fundas o accesorios, puedes desactivarla. Al hacerlo, el formulario para ingresar stock se simplificará y no te pedirá un número de lote, agilizando el proceso.</p>
+                            </li>
+                            <li>
+                                <strong>¿Qué es el nuevo Módulo de Reportes?</strong>
+                                <p>Es un centro de análisis que centraliza la información clave de tu negocio. Te permite ver no solo tus ganancias generales, sino también desglosar las ventas por producto para ver cuáles son tus estrellas, y auditar todas tus compras para tener un control total de la trazabilidad de tu inventario.</p>
                             </li>
                              <li>
                                 <strong>¿Cómo añado stock ahora?</strong>
-                                <p>Ve al módulo <strong>"Inventario"</strong>, busca el producto en la lista y haz clic en el botón <strong>"Registrar Ingreso"</strong>. Esto abrirá un formulario donde puedes añadir uno o más lotes de una sola vez, junto con la información de la compra (factura, proveedor), para mantener un registro claro.</p>
+                                <p>El proceso es el mismo: ve al módulo <strong>"Inventario"</strong>, busca el producto y haz clic en <strong>"Registrar Ingreso"</strong>. La única diferencia es que el formulario se adaptará automáticamente dependiendo de si el producto gestiona lotes o no.</p>
                             </li>
                             <li>
                                 <strong>¿Para qué sirve el Historial de Movimientos?</strong>
@@ -1547,7 +1641,7 @@
                                     </p>
                                     <div class="sql-code" style="max-height: 400px; overflow-y: auto; margin-top: 1.5rem; text-align: left;">
 <pre>
--- ========= SCRIPT DE CONFIGURACIÓN Y SINCRONIZACIÓN v11 (Auditoría de Inventario) =========
+-- ========= SCRIPT DE CONFIGURACIÓN Y SINCRONIZACIÓN v12 (Gestión de Lotes Opcional) =========
 CREATE TABLE IF NOT EXISTS public.categorias (id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY, nombre text NOT NULL, slug text NOT NULL UNIQUE, created_at timestamptz DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.productos (id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY, nombre text NOT NULL, precio numeric NOT NULL DEFAULT 0, created_at timestamptz DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.pedidos (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), numero_pedido serial NOT NULL, fecha_pedido timestamptz DEFAULT now(), nombre_cliente text, telefono_cliente text, email_cliente text, direccion text, productos jsonb, total numeric, cantidad_items integer, estado text, latitud double precision, longitud double precision);
@@ -1562,7 +1656,7 @@ CREATE TABLE IF NOT EXISTS public.movimientos_inventario (id bigint PRIMARY KEY 
 
 -- Sincronización de la tabla 'productos'
 ALTER TABLE public.productos DROP COLUMN IF EXISTS categoria;
-ALTER TABLE public.productos ADD COLUMN IF NOT EXISTS marca text, ADD COLUMN IF NOT EXISTS descripcion text, ADD COLUMN IF NOT EXISTS imagen_url text, ADD COLUMN IF NOT EXISTS icon text, ADD COLUMN IF NOT EXISTS badge text, ADD COLUMN IF NOT EXISTS activo boolean DEFAULT true, ADD COLUMN IF NOT EXISTS variantes jsonb, ADD COLUMN IF NOT EXISTS categoria_id bigint, ADD COLUMN IF NOT EXISTS stock integer NOT NULL DEFAULT 0, ADD COLUMN IF NOT EXISTS precio_costo numeric NOT NULL DEFAULT 0;
+ALTER TABLE public.productos ADD COLUMN IF NOT EXISTS marca text, ADD COLUMN IF NOT EXISTS descripcion text, ADD COLUMN IF NOT EXISTS imagen_url text, ADD COLUMN IF NOT EXISTS icon text, ADD COLUMN IF NOT EXISTS badge text, ADD COLUMN IF NOT EXISTS activo boolean DEFAULT true, ADD COLUMN IF NOT EXISTS variantes jsonb, ADD COLUMN IF NOT EXISTS categoria_id bigint, ADD COLUMN IF NOT EXISTS stock integer NOT NULL DEFAULT 0, ADD COLUMN IF NOT EXISTS precio_costo numeric NOT NULL DEFAULT 0, ADD COLUMN IF NOT EXISTS gestiona_lotes boolean DEFAULT true;
 ALTER TABLE public.productos DROP CONSTRAINT IF EXISTS productos_categoria_id_fkey; 
 ALTER TABLE public.productos ADD CONSTRAINT productos_categoria_id_fkey FOREIGN KEY (categoria_id) REFERENCES public.categorias(id) ON DELETE SET NULL;
 
@@ -1731,6 +1825,12 @@ NOTIFY pgrst_reload_schema;
                             <input type="checkbox" id="productoActivo" checked> Producto activo
                         </label>
                     </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="productoGestionLote" checked> Gestionar por Lotes y Vencimiento
+                        </label>
+                        <div class="form-hint">Si se desmarca, no se pedirá lote ni vencimiento al ingresar stock. Ideal para productos sin trazabilidad específica.</div>
+                    </div>
                     <div class="variantes-container">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <label style="margin: 0;">Variantes (ej: Talla, Color)</label>
@@ -1840,7 +1940,7 @@ NOTIFY pgrst_reload_schema;
                     <div id="lotesParaIngresarContainer">
                         <!-- Lotes se añaden aquí dinámicamente -->
                     </div>
-                    <button type="button" class="btn-secondary" onclick="agregarLoteParaIngreso()" style="margin-top: 1rem;">+ Añadir otro lote</button>
+                    <button type="button" class="btn-secondary" onclick="agregarLoteParaIngresoDesdeBoton()" style="margin-top: 1rem;">+ Añadir otro lote</button>
                     
                     <hr style="margin: 2rem 0; border: none; border-top: 1px solid var(--border-color);">
 
@@ -1987,6 +2087,7 @@ NOTIFY pgrst_reload_schema;
             cargarCategoriasAdmin();
             cargarConfiguracionAdmin();
             cargarInventario();
+            inicializarReportes();
 
             mostrarVistaAdmin('pedidos');
             suscribirACambiosPedidos();
@@ -2008,18 +2109,10 @@ NOTIFY pgrst_reload_schema;
                 document.getElementById('inventarioDashboard').style.display = 'none';
                 document.getElementById('movimientosView').style.display = 'block';
             }
-            
-            if (vista === 'reportes') {
-                const hoy = new Date();
-                const haceUnMes = new Date();
-                haceUnMes.setMonth(haceUnMes.getMonth() - 1);
-                document.getElementById('reporteFechaInicio').value = haceUnMes.toISOString().split('T')[0];
-                document.getElementById('reporteFechaFin').value = hoy.toISOString().split('T')[0];
-            }
         }
         
         function navegarAProductos() {
-            limpiarFiltroProductos(); // Primero limpia cualquier filtro para asegurar una vista limpia
+            limpiarFiltroProductos();
             mostrarVistaAdmin('productos');
         }
 
@@ -3049,6 +3142,7 @@ NOTIFY pgrst_reload_schema;
             form.reset();
             document.getElementById('productoId').value = '';
             document.getElementById('productoActivo').checked = true;
+            document.getElementById('productoGestionLote').checked = true;
             document.getElementById('variantesContainer').innerHTML = '';
             document.getElementById('variantImageFile').value = '';
             llenarSelectorCategoriasProducto();
@@ -3085,6 +3179,7 @@ NOTIFY pgrst_reload_schema;
                 document.getElementById('productoIcon').value = data.icon || '';
                 document.getElementById('productoBadge').value = data.badge || '';
                 document.getElementById('productoActivo').checked = data.activo;
+                document.getElementById('productoGestionLote').checked = data.gestiona_lotes;
                 document.getElementById('productoImagen').value = data.imagen_url || '';
                 
                 llenarSelectorCategoriasProducto();
@@ -3222,6 +3317,7 @@ NOTIFY pgrst_reload_schema;
                 icon: document.getElementById('productoIcon').value || '📦',
                 badge: document.getElementById('productoBadge').value || null,
                 activo: document.getElementById('productoActivo').checked,
+                gestiona_lotes: document.getElementById('productoGestionLote').checked,
                 imagen_url: document.getElementById('productoImagen').value || null,
                 variantes: serializarVariantes(),
             };
@@ -3360,11 +3456,17 @@ NOTIFY pgrst_reload_schema;
         
         async function abrirModalIngresoStock(productoId, event) {
             event.stopPropagation();
+            const producto = productosAdmin.find(p => p.id == productoId);
+            if (!producto) {
+                alert("Producto no encontrado. Por favor, recarga la página.");
+                return;
+            }
+
             document.getElementById('ingresoProductoId').value = productoId;
             document.getElementById('ingresoStockForm').reset();
             const container = document.getElementById('lotesParaIngresarContainer');
             container.innerHTML = '';
-            agregarLoteParaIngreso(); // Agregar el primer lote por defecto
+            agregarLoteParaIngreso(producto.gestiona_lotes);
             document.getElementById('ingresoStockModal').classList.add('show');
         }
 
@@ -3372,18 +3474,33 @@ NOTIFY pgrst_reload_schema;
             document.getElementById('ingresoStockModal').classList.remove('show');
         }
 
-        function agregarLoteParaIngreso() {
+        function agregarLoteParaIngreso(gestionaLotes = true) {
             const container = document.getElementById('lotesParaIngresarContainer');
             const div = document.createElement('div');
             div.className = 'lote-item lote-ingreso-item';
-            div.style.gridTemplateColumns = '1fr 1fr 1fr auto';
-            div.innerHTML = `
-                <div class="form-group" style="margin: 0;"><label>N° Lote</label><input type="text" class="loteNumeroIngreso"></div>
-                <div class="form-group" style="margin: 0;"><label>Vencimiento</label><input type="date" class="loteFechaIngreso"></div>
-                <div class="form-group" style="margin: 0;"><label>Cantidad</label><input type="number" min="1" class="loteCantidadIngreso" required></div>
-                <button type="button" class="btn-danger" style="align-self: center;" onclick="this.parentElement.remove()">×</button>
-            `;
+            
+            if (gestionaLotes) {
+                div.style.gridTemplateColumns = '1fr 1fr 1fr auto';
+                div.innerHTML = `
+                    <div class="form-group" style="margin: 0;"><label>N° Lote</label><input type="text" class="loteNumeroIngreso"></div>
+                    <div class="form-group" style="margin: 0;"><label>Vencimiento</label><input type="date" class="loteFechaIngreso"></div>
+                    <div class="form-group" style="margin: 0;"><label>Cantidad</label><input type="number" min="1" class="loteCantidadIngreso" required></div>
+                    <button type="button" class="btn-danger" style="align-self: end; margin-bottom: 1rem;" onclick="this.parentElement.remove()">×</button>
+                `;
+            } else {
+                div.style.gridTemplateColumns = '1fr auto';
+                div.innerHTML = `
+                    <div class="form-group" style="margin: 0;"><label>Cantidad</label><input type="number" min="1" class="loteCantidadIngreso" required></div>
+                    <button type="button" class="btn-danger" style="align-self: end; margin-bottom: 1rem;" onclick="this.parentElement.remove()">×</button>
+                `;
+            }
             container.appendChild(div);
+        }
+
+        function agregarLoteParaIngresoDesdeBoton() {
+            const productoId = document.getElementById('ingresoProductoId').value;
+            const producto = productosAdmin.find(p => p.id == productoId);
+            agregarLoteParaIngreso(producto ? producto.gestiona_lotes : true);
         }
 
         async function registrarIngresoStock(event) {
@@ -3394,18 +3511,23 @@ NOTIFY pgrst_reload_schema;
             
             const lotes = [];
             document.querySelectorAll('.lote-ingreso-item').forEach(item => {
-                const cantidad = item.querySelector('.loteCantidadIngreso').value;
+                const cantidadInput = item.querySelector('.loteCantidadIngreso');
+                const cantidad = cantidadInput ? cantidadInput.value : null;
+
                 if (cantidad) {
+                    const loteNumeroInput = item.querySelector('.loteNumeroIngreso');
+                    const fechaIngresoInput = item.querySelector('.loteFechaIngreso');
+
                     lotes.push({
-                        numero_lote: item.querySelector('.loteNumeroIngreso').value || null,
-                        fecha_vencimiento: item.querySelector('.loteFechaIngreso').value || null,
+                        numero_lote: loteNumeroInput ? loteNumeroInput.value || null : `SINLOTE-${Date.now()}`,
+                        fecha_vencimiento: fechaIngresoInput ? fechaIngresoInput.value || null : null,
                         cantidad: parseInt(cantidad)
                     });
                 }
             });
 
             if (lotes.length === 0) {
-                alert("Debes añadir al menos un lote con cantidad.");
+                alert("Debes añadir al menos un lote/item con cantidad.");
                 return;
             }
 
@@ -3481,8 +3603,8 @@ NOTIFY pgrst_reload_schema;
 
         function descargarPlantilla() {
             const data = [
-                ["nombre", "marca", "categoria_id", "descripcion", "precio", "precio_costo", "icon", "badge", "activo"],
-                ["iPhone 15 Pro", "Apple", 1, "Smartphone premium con la última tecnología", 4599.00, 3200.00, "📱", "Nuevo", true]
+                ["nombre", "marca", "categoria_id", "descripcion", "precio", "precio_costo", "icon", "badge", "activo", "gestiona_lotes"],
+                ["iPhone 15 Pro", "Apple", 1, "Smartphone premium con la última tecnología", 4599.00, 3200.00, "📱", "Nuevo", true, true]
             ];
             const ws = XLSX.utils.aoa_to_sheet(data);
             const wb = XLSX.utils.book_new();
@@ -3533,7 +3655,8 @@ NOTIFY pgrst_reload_schema;
                         stock: 0, // El stock ahora se gestiona por lotes
                         icon: p.icon,
                         badge: p.badge,
-                        activo: String(p.activo).toLowerCase() === 'true'
+                        activo: String(p.activo).toLowerCase() === 'true',
+                        gestiona_lotes: p.gestiona_lotes === undefined ? true : String(p.gestiona_lotes).toLowerCase() === 'true'
                     })).filter(p => p.nombre && p.marca && p.categoria_id && p.precio);
                     
                     if (productosParaSupabase.length === 0) {
@@ -3567,8 +3690,45 @@ NOTIFY pgrst_reload_schema;
             }
         }
         
-        // --- ADMIN: Reportes ---
+        // --- ADMIN: Reportes (NUEVA ESTRUCTURA) ---
+
+        function inicializarReportes() {
+            const hoy = new Date();
+            const haceUnMes = new Date();
+            haceUnMes.setMonth(haceUnMes.getMonth() - 1);
+            const hoyStr = hoy.toISOString().split('T')[0];
+            const haceUnMesStr = haceUnMes.toISOString().split('T')[0];
+
+            // Fechas para Resumen
+            document.getElementById('reporteFechaInicio').value = haceUnMesStr;
+            document.getElementById('reporteFechaFin').value = hoyStr;
+            // Fechas para Ventas por Producto
+            document.getElementById('reporteProductoFechaInicio').value = haceUnMesStr;
+            document.getElementById('reporteProductoFechaFin').value = hoyStr;
+            // Fechas para Compras
+            document.getElementById('reporteComprasFechaInicio').value = haceUnMesStr;
+            document.getElementById('reporteComprasFechaFin').value = hoyStr;
+
+            // Llenar selector de productos
+            const selector = document.getElementById('reporteProductoSelect');
+            if (productosAdmin.length > 0) {
+                selector.innerHTML = '<option value="">-- Todos los productos --</option>' + 
+                    productosAdmin.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
+            } else {
+                selector.innerHTML = '<option value="">No hay productos</option>';
+            }
+        }
+
+        function mostrarSubVistaReporte(vista) {
+            document.querySelectorAll('.reporte-subview').forEach(v => v.style.display = 'none');
+            document.querySelectorAll('#reportesNav .admin-nav-btn').forEach(b => b.classList.remove('active'));
+
+            document.getElementById(`reporte${vista.charAt(0).toUpperCase() + vista.slice(1)}View`).style.display = 'block';
+            document.getElementById(`navBtn${vista.charAt(0).toUpperCase() + vista.slice(1)}`).classList.add('active');
+        }
+
         async function generarReporteVentas() {
+            // Esta función ahora solo controla el reporte de Resumen
             const fechaInicio = document.getElementById('reporteFechaInicio').value;
             const fechaFin = document.getElementById('reporteFechaFin').value;
             
@@ -3577,7 +3737,6 @@ NOTIFY pgrst_reload_schema;
                 return;
             }
 
-            // Aseguramos que la fecha final incluya todo el día
             const fechaFinCompleta = new Date(fechaFin);
             fechaFinCompleta.setHours(23, 59, 59, 999);
 
@@ -3657,9 +3816,127 @@ NOTIFY pgrst_reload_schema;
             `).join('');
         }
 
+        async function generarReporteVentasPorProducto() {
+            const productoId = document.getElementById('reporteProductoSelect').value;
+            const fechaInicio = document.getElementById('reporteProductoFechaInicio').value;
+            const fechaFin = document.getElementById('reporteProductoFechaFin').value;
+            const tbody = document.getElementById('reporteVentasPorProductoTableBody');
+            
+            if (!fechaInicio || !fechaFin) {
+                alert("Por favor, selecciona un rango de fechas.");
+                return;
+            }
+
+            tbody.innerHTML = `<tr><td colspan="5" class="loading">Generando reporte...</td></tr>`;
+
+            const fechaFinCompleta = new Date(fechaFin);
+            fechaFinCompleta.setHours(23, 59, 59, 999);
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('pedidos')
+                    .select('fecha_pedido, numero_pedido, nombre_cliente, productos')
+                    .gte('fecha_pedido', new Date(fechaInicio).toISOString())
+                    .lte('fecha_pedido', fechaFinCompleta.toISOString())
+                    .order('fecha_pedido', { ascending: false });
+
+                if (error) throw error;
+
+                const ventasFiltradas = [];
+                (data || []).forEach(pedido => {
+                    (pedido.productos || []).forEach(item => {
+                        if (!productoId || item.id == productoId) {
+                            ventasFiltradas.push({
+                                fecha: new Date(pedido.fecha_pedido).toLocaleDateString(),
+                                numero_pedido: pedido.numero_pedido,
+                                cliente: pedido.nombre_cliente,
+                                cantidad: item.cantidad,
+                                total: item.subtotal,
+                                producto_nombre: item.producto // Para el caso "Todos"
+                            });
+                        }
+                    });
+                });
+                
+                if(ventasFiltradas.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 2rem;">No se encontraron ventas para este producto en el período seleccionado.</td></tr>`;
+                    return;
+                }
+                
+                // Si el filtro es para todos, se añade la columna producto
+                const allProductsMode = !productoId;
+                if(allProductsMode) {
+                   tbody.parentElement.querySelector('thead tr').innerHTML = `<th>Fecha</th><th>Producto</th><th>N° Pedido</th><th>Cliente</th><th>Cantidad</th><th>Total Venta</th>`;
+                } else {
+                   tbody.parentElement.querySelector('thead tr').innerHTML = `<th>Fecha</th><th>N° Pedido</th><th>Cliente</th><th>Cantidad Vendida</th><th>Total Venta</th>`;
+                }
+
+                tbody.innerHTML = ventasFiltradas.map(venta => `
+                    <tr>
+                        <td>${venta.fecha}</td>
+                        ${allProductsMode ? `<td>${venta.producto_nombre}</td>` : ''}
+                        <td>${venta.numero_pedido}</td>
+                        <td>${venta.cliente}</td>
+                        <td>${venta.cantidad}</td>
+                        <td>S/ ${venta.total.toFixed(2)}</td>
+                    </tr>
+                `).join('');
+
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="5" class="error-info">${error.message}</td></tr>`;
+            }
+        }
+        
+        async function generarReporteCompras() {
+            const fechaInicio = document.getElementById('reporteComprasFechaInicio').value;
+            const fechaFin = document.getElementById('reporteComprasFechaFin').value;
+            const tbody = document.getElementById('reporteComprasTableBody');
+
+            if (!fechaInicio || !fechaFin) {
+                alert("Por favor, selecciona un rango de fechas.");
+                return;
+            }
+
+            tbody.innerHTML = `<tr><td colspan="6" class="loading">Generando reporte...</td></tr>`;
+
+            const fechaFinCompleta = new Date(fechaFin);
+            fechaFinCompleta.setHours(23, 59, 59, 999);
+            
+            try {
+                const { data, error } = await supabaseClient
+                    .from('movimientos_inventario')
+                    .select('*, productos(nombre)')
+                    .eq('tipo_movimiento', 'INGRESO_COMPRA')
+                    .gte('fecha_movimiento', new Date(fechaInicio).toISOString())
+                    .lte('fecha_movimiento', fechaFinCompleta.toISOString())
+                    .order('fecha_movimiento', { ascending: false });
+                
+                if (error) throw error;
+                
+                if(data.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 2rem;">No se encontraron compras en el período seleccionado.</td></tr>`;
+                    return;
+                }
+                
+                tbody.innerHTML = data.map(item => `
+                    <tr>
+                        <td>${new Date(item.fecha_movimiento).toLocaleString()}</td>
+                        <td>${item.productos.nombre}</td>
+                        <td>${item.cantidad}</td>
+                        <td>${item.referencia_id || 'N/A'}</td>
+                        <td>${item.proveedor || 'N/A'}</td>
+                        <td>${item.usuario_email || 'Sistema'}</td>
+                    </tr>
+                `).join('');
+                
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="6" class="error-info">${error.message}</td></tr>`;
+            }
+        }
+
         function exportarReporteExcel() {
             if (datosReporteActual.length === 0) {
-                alert("No hay datos para exportar. Primero genera un reporte.");
+                alert("No hay datos para exportar. Primero genera un reporte en la pestaña 'Resumen de Ventas'.");
                 return;
             }
             
