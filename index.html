@@ -1252,13 +1252,12 @@
                             <h2>Configuración Inicial de la Base de Datos</h2>
                         </div>
                         <div class="auth-info" style="border-left-color: var(--primary);">
-                            <p><strong>¡Importante!</strong> Para que la aplicación funcione correctamente, tu base de datos en Supabase debe tener la estructura correcta. El error que mencionaste sobre <code>categoria_id</code> indica que la configuración inicial está incompleta.</p>
-                            <p class="form-hint" style="margin-top: 0.5rem;">Copia <strong>todo el script</strong> a continuación y pégalo en tu editor de Supabase: Dashboard → SQL Editor → New query. Ejecútalo una sola vez.</p>
-                            <p class="form-hint">Este script creará todas las tablas necesarias y establecerá las relaciones correctas. Es seguro ejecutarlo incluso si ya tienes algunas tablas creadas.</p>
+                            <p><strong>¡Atención!</strong> El error sobre "no encontrar una relación" ocurre cuando Supabase no reconoce la conexión entre tus tablas de productos y categorías. Esto suele pasar si el script inicial no se ejecutó completamente o si la caché de Supabase no se actualizó.</p>
+                            <p class="form-hint" style="margin-top: 0.5rem;">Para solucionarlo, copia <strong>todo el script mejorado</strong> a continuación y ejecútalo en tu editor de Supabase (Dashboard → SQL Editor → New query). Este script ahora define la relación de forma explícita y es seguro de ejecutar múltiples veces.</p>
                             
                             <div class="sql-code" style="max-height: 400px; overflow-y: auto; margin-top: 1.5rem; text-align: left;">
 <pre>
--- ========= SCRIPT DE CONFIGURACIÓN DE BASE DE DATOS =========
+-- ========= SCRIPT DE CONFIGURACIÓN DE BASE DE DATOS v2 =========
 
 -- 1. TABLA DE CATEGORÍAS
 CREATE TABLE IF NOT EXISTS public.categorias (
@@ -1275,7 +1274,7 @@ CREATE TABLE IF NOT EXISTS public.productos (
     marca text,
     descripcion text,
     precio numeric NOT NULL DEFAULT 0,
-    categoria_id bigint REFERENCES public.categorias(id) ON DELETE SET NULL,
+    categoria_id bigint, -- La relación se añade explícitamente más abajo
     imagen_url text,
     icon text,
     badge text,
@@ -1308,7 +1307,19 @@ CREATE TABLE IF NOT EXISTS public.configuracion (
     updated_at timestamptz DEFAULT now()
 );
 
--- 5. POLÍTICAS DE ACCESO (Row Level Security - RLS)
+-- 5. AÑADIR RELACIÓN (FOREIGN KEY)
+-- Esto asegura que la relación se cree explícitamente y soluciona el error.
+ALTER TABLE public.productos
+DROP CONSTRAINT IF EXISTS productos_categoria_id_fkey; -- Borra la relación si ya existe para evitar errores
+
+ALTER TABLE public.productos
+ADD CONSTRAINT productos_categoria_id_fkey
+FOREIGN KEY (categoria_id)
+REFERENCES public.categorias(id)
+ON DELETE SET NULL;
+
+
+-- 6. POLÍTICAS DE ACCESO (Row Level Security - RLS)
 ALTER TABLE public.categorias ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.productos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pedidos ENABLE ROW LEVEL SECURITY;
@@ -1709,6 +1720,7 @@ CREATE POLICY "Allow full access for authenticated users" ON public.configuracio
         async function cargarProductos() {
             if (!supabaseClient) return;
             document.getElementById('loadingProducts').style.display = 'block';
+            document.getElementById('productsGrid').innerHTML = ''; // Clear previous results
             try {
                 const { data, error } = await supabaseClient
                     .from('productos')
@@ -1730,7 +1742,7 @@ CREATE POLICY "Allow full access for authenticated users" ON public.configuracio
 
             } catch (error) {
                 document.getElementById('productsGrid').innerHTML = 
-                    `<div class="empty-cart"><p>Error al cargar productos: ${error.message}</p></div>`;
+                    `<div class="empty-cart"><p>Error al cargar productos: ${error.message}</p><p style="font-size: 0.8rem; color: #999;">Asegúrate de haber ejecutado el script de configuración desde la pestaña de Ayuda en el panel Admin.</p></div>`;
                 productos = [];
             } finally {
                 document.getElementById('loadingProducts').style.display = 'none';
