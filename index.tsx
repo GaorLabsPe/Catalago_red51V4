@@ -1,5 +1,4 @@
 
-
 const SUPABASE_URL = 'https://zejzrujrspeoszpfbjce.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InplanpydWpyc3Blb3N6cGZiamNlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2MDMyNDMsImV4cCI6MjA3NTE3OTI0M30.UAi4jQ0BH1hphW7OEh4JWP4hdVJ4CmvX6x4CyP2ak-U';
 const CLOUDINARY_CLOUD_NAME = 'dvj68er8s';
@@ -49,6 +48,16 @@ async function inicializarSupabase() {
     await cargarCategorias();
     await cargarProductos();
     await verificarSesion();
+}
+
+function setupGlobalEventListeners() {
+    document.addEventListener('submit', (event) => {
+        // Global handler for the checkout form to prevent duplicate listeners
+        if (event.target && (event.target as HTMLElement).id === 'checkoutForm') {
+            event.preventDefault();
+            realizarPedido();
+        }
+    });
 }
 
 async function cargarConfiguracion() {
@@ -555,17 +564,6 @@ function renderizarCarrito() {
             </div>
             <button type="submit" class="btn-primary" id="btnRealizarPedido">Realizar Pedido</button>
         </form>`;
-    
-    // Attach event listener to the newly created form
-    const form = document.getElementById('checkoutForm');
-    if (form) {
-        form.addEventListener('submit', handlePedidoSubmit);
-    }
-}
-
-function handlePedidoSubmit(event) {
-    event.preventDefault();
-    realizarPedido();
 }
 
 function cambiarCantidad(cartId, cambio) {
@@ -616,11 +614,7 @@ async function realizarPedido() {
         if (cartParaPedido.length === 0) {
             mostrarNotificacion('⚠️ Tu carrito está vacío.');
             // We need to release the lock if we return early.
-            isProcessingOrder = false; 
-            if(btnPedido) {
-                btnPedido.disabled = false;
-                btnPedido.textContent = 'Realizar Pedido';
-            }
+            // No need to manually re-enable button, finally block handles the lock
             return;
         }
 
@@ -2183,3 +2177,4 @@ window.onclick = function(event) {
 }
 
 inicializarSupabase();
+setupGlobalEventListeners();
