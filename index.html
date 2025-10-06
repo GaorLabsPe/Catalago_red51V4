@@ -1249,19 +1249,101 @@
                 <div id="ayudaView" class="admin-view-content" style="display:none;">
                      <div class="admin-section">
                         <div class="admin-header">
-                            <h2>Ayuda y Configuración de Base de Datos</h2>
+                            <h2>Configuración Inicial de la Base de Datos</h2>
                         </div>
                         <div class="auth-info" style="border-left-color: var(--primary);">
-                            <p>Para habilitar las nuevas funciones de <strong>variantes de producto</strong> y <strong>geolocalización</strong>, necesitas ejecutar los siguientes comandos SQL en tu editor de Supabase.</p>
-                            <p class="form-hint" style="margin-top: 0.5rem;">Ve a: Dashboard → SQL Editor → New query.</p>
+                            <p><strong>¡Importante!</strong> Para que la aplicación funcione correctamente, tu base de datos en Supabase debe tener la estructura correcta. El error que mencionaste sobre <code>categoria_id</code> indica que la configuración inicial está incompleta.</p>
+                            <p class="form-hint" style="margin-top: 0.5rem;">Copia <strong>todo el script</strong> a continuación y pégalo en tu editor de Supabase: Dashboard → SQL Editor → New query. Ejecútalo una sola vez.</p>
+                            <p class="form-hint">Este script creará todas las tablas necesarias y establecerá las relaciones correctas. Es seguro ejecutarlo incluso si ya tienes algunas tablas creadas.</p>
                             
-                            <h4 style="margin-top: 1.5rem; color: var(--primary);">1. Habilitar Variantes de Producto</h4>
-                            <p class="form-hint">Esto añade una columna 'variantes' a tu tabla de productos.</p>
-                            <div class="sql-code">ALTER TABLE public.productos ADD COLUMN IF NOT EXISTS variantes jsonb;</div>
-                            
-                            <h4 style="margin-top: 1.5rem; color: var(--primary);">2. Habilitar Geolocalización en Pedidos</h4>
-                             <p class="form-hint">Esto añade columnas 'latitud' y 'longitud' a tu tabla de pedidos para guardar la ubicación de entrega.</p>
-                            <div class="sql-code">ALTER TABLE public.pedidos ADD COLUMN IF NOT EXISTS latitud double precision;<br>ALTER TABLE public.pedidos ADD COLUMN IF NOT EXISTS longitud double precision;</div>
+                            <div class="sql-code" style="max-height: 400px; overflow-y: auto; margin-top: 1.5rem; text-align: left;">
+<pre>
+-- ========= SCRIPT DE CONFIGURACIÓN DE BASE DE DATOS =========
+
+-- 1. TABLA DE CATEGORÍAS
+CREATE TABLE IF NOT EXISTS public.categorias (
+    id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    nombre text NOT NULL,
+    slug text NOT NULL UNIQUE,
+    created_at timestamptz DEFAULT now()
+);
+
+-- 2. TABLA DE PRODUCTOS
+CREATE TABLE IF NOT EXISTS public.productos (
+    id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    nombre text NOT NULL,
+    marca text,
+    descripcion text,
+    precio numeric NOT NULL DEFAULT 0,
+    categoria_id bigint REFERENCES public.categorias(id) ON DELETE SET NULL,
+    imagen_url text,
+    icon text,
+    badge text,
+    activo boolean DEFAULT true,
+    variantes jsonb,
+    created_at timestamptz DEFAULT now()
+);
+
+-- 3. TABLA DE PEDIDOS
+CREATE TABLE IF NOT EXISTS public.pedidos (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    numero_pedido serial NOT NULL,
+    fecha_pedido timestamptz DEFAULT now(),
+    nombre_cliente text,
+    telefono_cliente text,
+    email_cliente text,
+    direccion text,
+    productos jsonb,
+    total numeric,
+    cantidad_items integer,
+    estado text,
+    latitud double precision,
+    longitud double precision
+);
+
+-- 4. TABLA DE CONFIGURACIÓN
+CREATE TABLE IF NOT EXISTS public.configuracion (
+    clave text PRIMARY KEY,
+    valor text,
+    updated_at timestamptz DEFAULT now()
+);
+
+-- 5. POLÍTICAS DE ACCESO (Row Level Security - RLS)
+ALTER TABLE public.categorias ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.productos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.pedidos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.configuracion ENABLE ROW LEVEL SECURITY;
+
+-- Políticas de LECTURA pública para todos
+DROP POLICY IF EXISTS "Public read access" ON public.categorias;
+CREATE POLICY "Public read access" ON public.categorias FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read access" ON public.productos;
+CREATE POLICY "Public read access" ON public.productos FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read access" ON public.configuracion;
+CREATE POLICY "Public read access" ON public.configuracion FOR SELECT USING (true);
+
+-- Política para que CUALQUIERA pueda crear pedidos
+DROP POLICY IF EXISTS "Allow public insert" ON public.pedidos;
+CREATE POLICY "Allow public insert" ON public.pedidos FOR INSERT WITH CHECK (true);
+
+-- Políticas de ACCESO TOTAL para administradores (autenticados)
+DROP POLICY IF EXISTS "Allow full access for authenticated users" ON public.categorias;
+CREATE POLICY "Allow full access for authenticated users" ON public.categorias FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Allow full access for authenticated users" ON public.productos;
+CREATE POLICY "Allow full access for authenticated users" ON public.productos FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Allow full access for authenticated users" ON public.pedidos;
+CREATE POLICY "Allow full access for authenticated users" ON public.pedidos FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Allow full access for authenticated users" ON public.configuracion;
+CREATE POLICY "Allow full access for authenticated users" ON public.configuracion FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+
+-- ¡Configuración completada!
+</pre>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1630,27 +1712,19 @@
             try {
                 const { data, error } = await supabaseClient
                     .from('productos')
-                    .select('*')
+                    .select('*, categorias(nombre, slug)')
                     .eq('activo', true)
                     .order('nombre');
 
                 if (error) throw error;
-
-                if (!data || data.length === 0) {
+                
+                productos = data || [];
+                
+                if (productos.length === 0) {
                     document.getElementById('productsGrid').innerHTML = 
                         '<div class="empty-cart"><p>No hay productos disponibles. Ve al panel Admin para agregar productos.</p></div>';
-                    productos = [];
                     return;
                 }
-                
-                const categoriesMap = new Map(categorias.map(cat => [cat.id, cat]));
-                productos = data.map(producto => {
-                    const categoria = categoriesMap.get(producto.categoria_id);
-                    return {
-                        ...producto,
-                        categorias: categoria ? { nombre: categoria.nombre, slug: categoria.slug } : { nombre: 'Sin Categoría', slug: 'sin-categoria' }
-                    };
-                });
                 
                 renderizarProductos();
 
@@ -1687,7 +1761,7 @@
             const grid = document.getElementById('productsGrid');
             const productosFiltrados = categoriaActual === 'todos' 
                 ? productos 
-                : productos.filter(p => p.categorias.slug === categoriaActual);
+                : productos.filter(p => p.categorias && p.categorias.slug === categoriaActual);
             
             if (productosFiltrados.length === 0) {
                 grid.innerHTML = '<div class="empty-cart"><p>No hay productos en esta categoria.</p></div>';
@@ -1707,7 +1781,7 @@
                         ${producto.badge ? `<span class="product-badge">${producto.badge}</span>` : ''}
                     </div>
                     <div class="product-info">
-                        <div class="product-category">${producto.categorias.nombre}</div>
+                        <div class="product-category">${producto.categorias ? producto.categorias.nombre : 'Sin Categoría'}</div>
                         <h3 class="product-name">${producto.nombre}</h3>
                         <div class="product-brand">${producto.marca}</div>
                         <p class="product-description">${producto.descripcion}</p>
@@ -2107,7 +2181,7 @@
                             <div class="form-group" style="margin-top: 1rem;">
                                 <label style="color: var(--text-dark);">Cambiar Estado</label>
                                 <select id="modalStatusSelect" class="status-select ${pedido.estado}" onchange="cambiarEstadoPedido('${pedido.id}', this.value)">
-                                    ${estadosPosibles.map(e => `<option value="${e}" ${e === pedido.estado ? 'selected' : ''}>${e.replace(/_/g, ' ')}</option>`).join('')}
+                                    ${estadosPosibles.map(e => `<option value="${e}" ${e === p.estado ? 'selected' : ''}>${e.replace(/_/g, ' ')}</option>`).join('')}
                                 </select>
                             </div>
                             ${pedido.latitud && pedido.longitud ? `
@@ -2256,14 +2330,10 @@
             if (!supabaseClient) return;
             document.getElementById('loadingAdmin').style.display = 'block';
             try {
-                const { data, error } = await supabaseClient.from('productos').select('*').order('nombre');
+                const { data, error } = await supabaseClient.from('productos').select('*, categorias(nombre)').order('nombre');
                 if (error) throw error;
                 
-                const categoriesMap = new Map(categorias.map(cat => [cat.id, cat]));
-                const productosAdmin = (data || []).map(p => ({
-                    ...p,
-                    categorias: categoriesMap.get(p.categoria_id) || null
-                }));
+                const productosAdmin = data || [];
 
                 const tbody = document.getElementById('adminProductsTable');
                 tbody.innerHTML = productosAdmin.map(p => `
