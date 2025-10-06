@@ -601,30 +601,34 @@ async function realizarPedido() {
         console.warn("Pedido ya en proceso. Intento duplicado bloqueado.");
         return;
     }
+    
+    // Check for empty cart first
+    if (carrito.length === 0) {
+        mostrarNotificacion('⚠️ Tu carrito está vacío.');
+        return;
+    }
 
-    const cartParaPedido = [...carrito];
     const form = document.getElementById('checkoutForm');
+    if (!form) {
+        console.warn("Formulario no encontrado, posible intento de duplicado bloqueado.");
+        return; 
+    }
+
+    // 1. Read all values from the form BEFORE modifying it
+    const nombre = (document.getElementById('nombreCliente') as HTMLInputElement).value;
+    const telefono = (document.getElementById('telefonoCliente') as HTMLInputElement).value;
+    const email = (document.getElementById('emailCliente') as HTMLInputElement).value || null;
+    const direccion = (document.getElementById('direccionCliente') as HTMLTextAreaElement).value;
+
+    const cartParaPedido = [...carrito]; // Take a snapshot of the cart
 
     try {
         isProcessingOrder = true;
-        if (form) {
-             form.innerHTML = '<div class="loading" style="padding: 2rem 0;">Procesando tu pedido...</div>';
-        } else {
-             console.warn("Formulario no encontrado, posible intento de duplicado bloqueado.");
-             return; 
-        }
 
-        if (cartParaPedido.length === 0) {
-            mostrarNotificacion('⚠️ Tu carrito está vacío.');
-            return;
-        }
+        // 2. NOW it's safe to modify the form to show a loading state
+        form.innerHTML = '<div class="loading" style="padding: 2rem 0;">Procesando tu pedido...</div>'; 
 
-        const nombre = (document.getElementById('nombreCliente') as HTMLInputElement).value;
-        const telefono = (document.getElementById('telefonoCliente') as HTMLInputElement).value;
-        const email = (document.getElementById('emailCliente') as HTMLInputElement).value || null;
-        const direccion = (document.getElementById('direccionCliente') as HTMLTextAreaElement).value;
-
-        // Empty the main cart immediately
+        // Empty the main cart immediately to prevent duplicates
         carrito = [];
         actualizarContadorCarrito();
         
