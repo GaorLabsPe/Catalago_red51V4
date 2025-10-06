@@ -1025,6 +1025,46 @@
             object-fit: cover;
         }
 
+        #ayudaView .help-card {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        #ayudaView h3 {
+            color: var(--primary);
+            margin-bottom: 1rem;
+            border-bottom: 2px solid var(--secondary);
+            padding-bottom: 0.5rem;
+            display: inline-block;
+        }
+
+        #ayudaView p, #ayudaView li {
+            color: var(--text-light);
+            margin-bottom: 0.75rem;
+        }
+        
+        #ayudaView ul, #ayudaView ol {
+            padding-left: 20px;
+        }
+
+        #ayudaView strong {
+            color: var(--text-dark);
+        }
+        
+        #ayudaView details {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+        #ayudaView summary {
+            font-weight: 600;
+            cursor: pointer;
+            padding: 1rem;
+            background: var(--light);
+        }
+
         @keyframes highlight-row {
             0% { background-color: #bfdbfe; }
             100% { background-color: transparent; }
@@ -1256,126 +1296,74 @@
                 </div>
 
                 <div id="ayudaView" class="admin-view-content" style="display:none;">
-                     <div class="admin-section">
-                        <div class="admin-header">
-                            <h2>Ayuda y Configuración</h2>
-                        </div>
-
-                        <div class="auth-info" style="border-left-color: var(--primary); margin-top: 1rem;">
-                            <p><strong>Script de Sincronización de Base de Datos (Definitivo)</strong></p>
-                            <p class="form-hint" style="margin-top: 0.5rem;">
-                                Lamento todos los problemas anteriores. Este error ocurre porque tu tabla de `productos` fue creada con una versión antigua del script a la que le faltaban columnas como `categoria_id` y `variantes`.
-                                <br><br>
-                                Este nuevo script es la solución final. **Revisa tu tabla `productos` y AÑADE TODAS las columnas que puedan faltar.** Es un script de "sincronización" que arregla la tabla sin importar qué tan antigua sea.
-                                <br><br>
-                                <strong>Por favor, ejecuta este script completo. Será la última vez que necesites hacerlo.</strong>
-                            </p>
-                            
-                            <div class="sql-code" style="max-height: 400px; overflow-y: auto; margin-top: 1.5rem; text-align: left;">
+                    <div class="admin-header" style="margin-bottom: 0;">
+                        <h2>Centro de Ayuda</h2>
+                    </div>
+                    <div class="help-card">
+                        <h3>🚀 Guía de Inicio Rápido</h3>
+                        <p>¡Bienvenido al panel de control de tu tienda! Sigue estos pasos para poner todo en marcha:</p>
+                        <ol>
+                            <li><strong>Crea tus Categorías:</strong> Ve a la pestaña <strong>"Categorías"</strong> y añade las secciones para tus productos (ej: Laptops, Accesorios, Smartphones).</li>
+                            <li><strong>Añade tus Productos:</strong> En la pestaña <strong>"Productos"</strong>, haz clic en "+ Agregar Producto". Rellena los detalles y, muy importante, ¡asígnale una categoría!</li>
+                            <li><strong>Personaliza tu Portada:</strong> Ve a <strong>"Configuración"</strong> y pega la URL de una imagen atractiva para la sección principal de tu tienda.</li>
+                            <li><strong>Gestiona tus Pedidos:</strong> Cuando recibas una venta, aparecerá en la pestaña <strong>"Pedidos"</strong>. Podrás ver los detalles del cliente y cambiar el estado del envío.</li>
+                        </ol>
+                    </div>
+                    <div class="help-card">
+                        <h3>🤔 Preguntas Frecuentes (FAQ)</h3>
+                        <ul>
+                            <li>
+                                <strong>¿Cómo funcionan los productos con variantes (ej: color, talla)?</strong>
+                                <p>Al crear o editar un producto, busca la sección "Variantes". Haz clic en "+ Agregar tipo" para crear un tipo de variante (ej: "Color"). Luego, añade las opciones (ej: "Rojo", "Azul", "Verde") y presiona Enter. Puedes añadir múltiples tipos como "Talla", "Almacenamiento", etc. Tus clientes deberán elegir una opción de cada tipo antes de comprar.</p>
+                            </li>
+                            <li>
+                                <strong>¿Cómo subo imágenes?</strong>
+                                <p>En el formulario de producto, puedes subir una imagen desde tu computadora o pegar una URL de una imagen que ya esté en internet. Usamos un servicio llamado Cloudinary para optimizar las imágenes automáticamente, asegurando que tu tienda cargue siempre rápido.</p>
+                            </li>
+                             <li>
+                                <strong>¿Qué es el "slug" en las categorías?</strong>
+                                <p>Es un identificador único que se usa en la URL de tu tienda (ej: `.../categoria/smartphones-y-tablets`). Se genera automáticamente a partir del nombre, pero puedes editarlo. Es importante para el SEO. ¡Usa solo minúsculas, números y guiones!</p>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="help-card">
+                         <details>
+                            <summary>🛠️ Herramientas para Desarrolladores y Solución de Problemas</summary>
+                            <div style="padding-top: 1rem;">
+                                <p>Esta sección contiene herramientas para la configuración inicial o para solucionar problemas avanzados en la base de datos. <strong>No modifiques nada aquí a menos que sepas lo que estás haciendo.</strong></p>
+                                <div class="auth-info" style="border-left-color: var(--primary); margin-top: 1rem;">
+                                    <p><strong>Script de Sincronización de Base de Datos (Definitivo)</strong></p>
+                                    <p class="form-hint" style="margin-top: 0.5rem;">
+                                        Este script se usa una sola vez durante la instalación para crear y configurar todas las tablas necesarias en tu base de datos de Supabase. Si tienes problemas como "columna no encontrada", ejecutar este script completo en el "SQL Editor" de Supabase suele solucionarlo.
+                                    </p>
+                                    <div class="sql-code" style="max-height: 400px; overflow-y: auto; margin-top: 1.5rem; text-align: left;">
 <pre>
 -- ========= SCRIPT DE CONFIGURACIÓN Y SINCRONIZACIÓN v6 (Definitivo) =========
-
--- 1. CREACIÓN DE TABLAS (Si no existen)
-CREATE TABLE IF NOT EXISTS public.categorias (
-    id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    nombre text NOT NULL,
-    slug text NOT NULL UNIQUE,
-    created_at timestamptz DEFAULT now()
-);
-
-CREATE TABLE IF NOT EXISTS public.productos (
-    id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    nombre text NOT NULL,
-    precio numeric NOT NULL DEFAULT 0,
-    created_at timestamptz DEFAULT now()
-);
-
-CREATE TABLE IF NOT EXISTS public.pedidos (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    numero_pedido serial NOT NULL,
-    fecha_pedido timestamptz DEFAULT now(),
-    nombre_cliente text,
-    telefono_cliente text,
-    email_cliente text,
-    direccion text,
-    productos jsonb,
-    total numeric,
-    cantidad_items integer,
-    estado text,
-    latitud double precision,
-    longitud double precision
-);
-
-CREATE TABLE IF NOT EXISTS public.configuracion (
-    clave text PRIMARY KEY,
-    valor text,
-    updated_at timestamptz DEFAULT now()
-);
-
--- 2. SINCRONIZACIÓN DE COLUMNAS (¡LA SOLUCIÓN!)
--- Este bloque asegura que TODAS las columnas necesarias existan en la tabla 'productos'.
--- Arregla errores de 'categoria_id', 'variantes', y cualquier otra columna faltante.
-ALTER TABLE public.productos
-ADD COLUMN IF NOT EXISTS marca text,
-ADD COLUMN IF NOT EXISTS descripcion text,
-ADD COLUMN IF NOT EXISTS imagen_url text,
-ADD COLUMN IF NOT EXISTS icon text,
-ADD COLUMN IF NOT EXISTS badge text,
-ADD COLUMN IF NOT EXISTS activo boolean DEFAULT true,
-ADD COLUMN IF NOT EXISTS variantes jsonb,
-ADD COLUMN IF NOT EXISTS categoria_id bigint;
-
-
--- 3. RELACIÓN DE CLAVE EXTERNA
--- Borra la relación si ya existe para evitar errores y la vuelve a crear correctamente.
-ALTER TABLE public.productos
-DROP CONSTRAINT IF EXISTS productos_categoria_id_fkey; 
-
-ALTER TABLE public.productos
-ADD CONSTRAINT productos_categoria_id_fkey
-FOREIGN KEY (categoria_id)
-REFERENCES public.categorias(id)
-ON DELETE SET NULL;
-
-
--- 4. POLÍTICAS DE ACCESO (Row Level Security - RLS)
+CREATE TABLE IF NOT EXISTS public.categorias (id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY, nombre text NOT NULL, slug text NOT NULL UNIQUE, created_at timestamptz DEFAULT now());
+CREATE TABLE IF NOT EXISTS public.productos (id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY, nombre text NOT NULL, precio numeric NOT NULL DEFAULT 0, created_at timestamptz DEFAULT now());
+CREATE TABLE IF NOT EXISTS public.pedidos (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), numero_pedido serial NOT NULL, fecha_pedido timestamptz DEFAULT now(), nombre_cliente text, telefono_cliente text, email_cliente text, direccion text, productos jsonb, total numeric, cantidad_items integer, estado text, latitud double precision, longitud double precision);
+CREATE TABLE IF NOT EXISTS public.configuracion (clave text PRIMARY KEY, valor text, updated_at timestamptz DEFAULT now());
+ALTER TABLE public.productos ADD COLUMN IF NOT EXISTS marca text, ADD COLUMN IF NOT EXISTS descripcion text, ADD COLUMN IF NOT EXISTS imagen_url text, ADD COLUMN IF NOT EXISTS icon text, ADD COLUMN IF NOT EXISTS badge text, ADD COLUMN IF NOT EXISTS activo boolean DEFAULT true, ADD COLUMN IF NOT EXISTS variantes jsonb, ADD COLUMN IF NOT EXISTS categoria_id bigint;
+ALTER TABLE public.productos DROP CONSTRAINT IF EXISTS productos_categoria_id_fkey; 
+ALTER TABLE public.productos ADD CONSTRAINT productos_categoria_id_fkey FOREIGN KEY (categoria_id) REFERENCES public.categorias(id) ON DELETE SET NULL;
 ALTER TABLE public.categorias ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.productos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pedidos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.configuracion ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Public read access" ON public.categorias;
-CREATE POLICY "Public read access" ON public.categorias FOR SELECT USING (true);
-
-DROP POLICY IF EXISTS "Public read access" ON public.productos;
-CREATE POLICY "Public read access" ON public.productos FOR SELECT USING (true);
-
-DROP POLICY IF EXISTS "Public read access" ON public.configuracion;
-CREATE POLICY "Public read access" ON public.configuracion FOR SELECT USING (true);
-
-DROP POLICY IF EXISTS "Allow public insert" ON public.pedidos;
-CREATE POLICY "Allow public insert" ON public.pedidos FOR INSERT WITH CHECK (true);
-
-DROP POLICY IF EXISTS "Allow full access for authenticated users" ON public.categorias;
-CREATE POLICY "Allow full access for authenticated users" ON public.categorias FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
-
-DROP POLICY IF EXISTS "Allow full access for authenticated users" ON public.productos;
-CREATE POLICY "Allow full access for authenticated users" ON public.productos FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
-
-DROP POLICY IF EXISTS "Allow full access for authenticated users" ON public.pedidos;
-CREATE POLICY "Allow full access for authenticated users" ON public.pedidos FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
-
-DROP POLICY IF EXISTS "Allow full access for authenticated users" ON public.configuracion;
-CREATE POLICY "Allow full access for authenticated users" ON public.configuracion FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
-
--- 5. NOTIFICACIÓN DE RECARGA DE ESQUEMA
--- Esta línea le ordena a la API de Supabase que actualice su caché inmediatamente.
+DROP POLICY IF EXISTS "Public read access" ON public.categorias; CREATE POLICY "Public read access" ON public.categorias FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public read access" ON public.productos; CREATE POLICY "Public read access" ON public.productos FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public read access" ON public.configuracion; CREATE POLICY "Public read access" ON public.configuracion FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow public insert" ON public.pedidos; CREATE POLICY "Allow public insert" ON public.pedidos FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Allow full access for authenticated users" ON public.categorias; CREATE POLICY "Allow full access for authenticated users" ON public.categorias FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Allow full access for authenticated users" ON public.productos; CREATE POLICY "Allow full access for authenticated users" ON public.productos FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Allow full access for authenticated users" ON public.pedidos; CREATE POLICY "Allow full access for authenticated users" ON public.pedidos FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Allow full access for authenticated users" ON public.configuracion; CREATE POLICY "Allow full access for authenticated users" ON public.configuracion FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 NOTIFY pgrst_reload_schema;
-
--- ¡Configuración completada!
 </pre>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
+                         </details>
                     </div>
                 </div>
                 
