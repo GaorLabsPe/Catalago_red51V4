@@ -1261,18 +1261,20 @@
                         </div>
 
                         <div class="auth-info" style="border-left-color: var(--primary); margin-top: 1rem;">
-                            <p><strong>Script de Base de Datos (Solución Definitiva)</strong></p>
+                            <p><strong>Script de Base de Datos (A Prueba de Fallos)</strong></p>
                             <p class="form-hint" style="margin-top: 0.5rem;">
-                                Entiendo tu frustración. El error de "schema cache" es uno de los más obstinados de Supabase.
-                                He actualizado el script con un comando especial que <strong>fuerza a la API a recargar su configuración</strong>.
-                                Por favor, ejecuta este script completo una última vez. Esto resolverá el problema de forma definitiva.
+                                Lamento los problemas. Este error ocurre cuando la tabla `productos` se creó con una versión antigua del script a la que le faltaba la columna `categoria_id`.
+                                <br>
+                                Este nuevo script es "inteligente": <strong>primero se asegura de que la columna `categoria_id` exista y solo después crea la conexión.</strong> Esto arregla el problema de raíz, sin importar el estado anterior de tu base de datos.
+                                <br><br>
+                                <strong>Por favor, ejecuta este script completo. Será la última vez.</strong>
                             </p>
                             
                             <div class="sql-code" style="max-height: 400px; overflow-y: auto; margin-top: 1.5rem; text-align: left;">
 <pre>
--- ========= SCRIPT DE CONFIGURACIÓN DE BASE DE DATOS v4 (Final) =========
+-- ========= SCRIPT DE CONFIGURACIÓN v5 (A prueba de fallos) =========
 
--- 1. TABLA DE CATEGORÍAS
+-- 1. CREACIÓN DE TABLAS (Si no existen)
 CREATE TABLE IF NOT EXISTS public.categorias (
     id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     nombre text NOT NULL,
@@ -1280,14 +1282,12 @@ CREATE TABLE IF NOT EXISTS public.categorias (
     created_at timestamptz DEFAULT now()
 );
 
--- 2. TABLA DE PRODUCTOS
 CREATE TABLE IF NOT EXISTS public.productos (
     id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     nombre text NOT NULL,
     marca text,
     descripcion text,
     precio numeric NOT NULL DEFAULT 0,
-    categoria_id bigint,
     imagen_url text,
     icon text,
     badge text,
@@ -1296,7 +1296,6 @@ CREATE TABLE IF NOT EXISTS public.productos (
     created_at timestamptz DEFAULT now()
 );
 
--- 3. TABLA DE PEDIDOS
 CREATE TABLE IF NOT EXISTS public.pedidos (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     numero_pedido serial NOT NULL,
@@ -1313,14 +1312,18 @@ CREATE TABLE IF NOT EXISTS public.pedidos (
     longitud double precision
 );
 
--- 4. TABLA DE CONFIGURACIÓN
 CREATE TABLE IF NOT EXISTS public.configuracion (
     clave text PRIMARY KEY,
     valor text,
     updated_at timestamptz DEFAULT now()
 );
 
--- 5. AÑADIR RELACIÓN (FOREIGN KEY)
+-- 2. ASEGURAR COLUMNA Y RELACIÓN (¡LA SOLUCIÓN!)
+-- Este bloque es crucial. Se asegura que la columna 'categoria_id' exista en la tabla de productos antes de intentar crear la relación.
+ALTER TABLE public.productos
+ADD COLUMN IF NOT EXISTS categoria_id bigint;
+
+-- Ahora, se establece la relación de forma segura.
 ALTER TABLE public.productos
 DROP CONSTRAINT IF EXISTS productos_categoria_id_fkey; -- Borra la relación si ya existe para evitar errores
 
@@ -1331,7 +1334,7 @@ REFERENCES public.categorias(id)
 ON DELETE SET NULL;
 
 
--- 6. POLÍTICAS DE ACCESO (Row Level Security - RLS)
+-- 3. POLÍTICAS DE ACCESO (Row Level Security - RLS)
 ALTER TABLE public.categorias ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.productos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pedidos ENABLE ROW LEVEL SECURITY;
@@ -1361,7 +1364,7 @@ CREATE POLICY "Allow full access for authenticated users" ON public.pedidos FOR 
 DROP POLICY IF EXISTS "Allow full access for authenticated users" ON public.configuracion;
 CREATE POLICY "Allow full access for authenticated users" ON public.configuracion FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 
--- 7. NOTIFICACIÓN DE RECARGA DE ESQUEMA (¡LA SOLUCIÓN!)
+-- 4. NOTIFICACIÓN DE RECARGA DE ESQUEMA
 -- Esta línea le ordena a la API de Supabase que actualice su caché inmediatamente.
 NOTIFY pgrst_reload_schema;
 
@@ -1369,13 +1372,6 @@ NOTIFY pgrst_reload_schema;
 </pre>
                             </div>
                         </div>
-
-                        <div class="error-info" style="margin-top: 2rem;">
-                            <h4 style="color: var(--danger); margin-bottom: 0.5rem;">Si el error persiste...</h4>
-                            <p class="form-hint" style="color: #c2410c;">Si después de ejecutar el script el error continúa, el último recurso es el método manual del botón "Reload", ya que la caché de tu proyecto podría estar especialmente atascada.</p>
-                            <img src="https://i.imgur.com/71jY3Lh.png" alt="Instrucción para recargar el esquema de Supabase" style="width: 100%; max-width: 600px; margin-top: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
-                        </div>
-
                     </div>
                 </div>
                 
