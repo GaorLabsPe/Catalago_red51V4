@@ -1252,12 +1252,12 @@
                             <h2>Configuración Inicial de la Base de Datos</h2>
                         </div>
                         <div class="auth-info" style="border-left-color: var(--primary);">
-                            <p><strong>¡Atención!</strong> El error sobre "no encontrar una relación" ocurre cuando Supabase no reconoce la conexión entre tus tablas de productos y categorías. Esto suele pasar si el script inicial no se ejecutó completamente o si la caché de Supabase no se actualizó.</p>
-                            <p class="form-hint" style="margin-top: 0.5rem;">Para solucionarlo, copia <strong>todo el script mejorado</strong> a continuación y ejecútalo en tu editor de Supabase (Dashboard → SQL Editor → New query). Este script ahora define la relación de forma explícita y es seguro de ejecutar múltiples veces.</p>
+                            <p><strong>¡Atención!</strong> Este script SQL configura tu base de datos. Es seguro ejecutarlo múltiples veces.</p>
+                            <p class="form-hint" style="margin-top: 0.5rem;">Copia <strong>todo el script</strong> y ejecútalo en tu editor de Supabase (Dashboard → SQL Editor → New query). Esto asegura que todas las tablas y relaciones existan correctamente.</p>
                             
                             <div class="sql-code" style="max-height: 400px; overflow-y: auto; margin-top: 1.5rem; text-align: left;">
 <pre>
--- ========= SCRIPT DE CONFIGURACIÓN DE BASE DE DATOS v2 =========
+-- ========= SCRIPT DE CONFIGURACIÓN DE BASE DE DATOS v3 =========
 
 -- 1. TABLA DE CATEGORÍAS
 CREATE TABLE IF NOT EXISTS public.categorias (
@@ -1308,7 +1308,7 @@ CREATE TABLE IF NOT EXISTS public.configuracion (
 );
 
 -- 5. AÑADIR RELACIÓN (FOREIGN KEY)
--- Esto asegura que la relación se cree explícitamente y soluciona el error.
+-- Esto asegura que la relación se cree explícitamente.
 ALTER TABLE public.productos
 DROP CONSTRAINT IF EXISTS productos_categoria_id_fkey; -- Borra la relación si ya existe para evitar errores
 
@@ -1720,17 +1720,28 @@ CREATE POLICY "Allow full access for authenticated users" ON public.configuracio
         async function cargarProductos() {
             if (!supabaseClient) return;
             document.getElementById('loadingProducts').style.display = 'block';
-            document.getElementById('productsGrid').innerHTML = ''; // Clear previous results
+            document.getElementById('productsGrid').innerHTML = '';
             try {
+                // SOLUCIÓN: Cargar productos sin el join automático
                 const { data, error } = await supabaseClient
                     .from('productos')
-                    .select('*, categorias(nombre, slug)')
+                    .select('*')
                     .eq('activo', true)
                     .order('nombre');
 
                 if (error) throw error;
                 
-                productos = data || [];
+                const productosData = data || [];
+
+                // SOLUCIÓN: Unir manualmente las categorías en el lado del cliente
+                productos = productosData.map(p => {
+                    const categoria = categorias.find(c => c.id === p.categoria_id);
+                    return {
+                        ...p,
+                        // Replicar la estructura que el resto del código espera
+                        categorias: categoria ? { nombre: categoria.nombre, slug: categoria.slug } : null 
+                    };
+                });
                 
                 if (productos.length === 0) {
                     document.getElementById('productsGrid').innerHTML = 
@@ -2193,7 +2204,7 @@ CREATE POLICY "Allow full access for authenticated users" ON public.configuracio
                             <div class="form-group" style="margin-top: 1rem;">
                                 <label style="color: var(--text-dark);">Cambiar Estado</label>
                                 <select id="modalStatusSelect" class="status-select ${pedido.estado}" onchange="cambiarEstadoPedido('${pedido.id}', this.value)">
-                                    ${estadosPosibles.map(e => `<option value="${e}" ${e === p.estado ? 'selected' : ''}>${e.replace(/_/g, ' ')}</option>`).join('')}
+                                    ${estadosPosibles.map(e => `<option value="${e}" ${e === pedido.estado ? 'selected' : ''}>${e.replace(/_/g, ' ')}</option>`).join('')}
                                 </select>
                             </div>
                             ${pedido.latitud && pedido.longitud ? `
@@ -2342,10 +2353,20 @@ CREATE POLICY "Allow full access for authenticated users" ON public.configuracio
             if (!supabaseClient) return;
             document.getElementById('loadingAdmin').style.display = 'block';
             try {
-                const { data, error } = await supabaseClient.from('productos').select('*, categorias(nombre)').order('nombre');
+                // SOLUCIÓN: Cargar productos sin el join automático
+                const { data, error } = await supabaseClient.from('productos').select('*').order('nombre');
                 if (error) throw error;
                 
-                const productosAdmin = data || [];
+                const productosAdminData = data || [];
+
+                // SOLUCIÓN: Unir manualmente las categorías en el lado del cliente
+                const productosAdmin = productosAdminData.map(p => {
+                    const categoria = categorias.find(c => c.id === p.categoria_id);
+                    return {
+                        ...p,
+                        categorias: categoria ? { nombre: categoria.nombre } : null
+                    };
+                });
 
                 const tbody = document.getElementById('adminProductsTable');
                 tbody.innerHTML = productosAdmin.map(p => `
