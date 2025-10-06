@@ -2578,22 +2578,19 @@ NOTIFY pgrst_reload_schema;
 
         async function realizarPedido(event) {
             event.preventDefault();
-            
             const btnPedido = document.getElementById('btnRealizarPedido');
+
+            // Comprobar el bloqueo al inicio de la función.
             if (btnPedido.disabled) {
                 return;
             }
-            
-            const cartParaPedido = [...carrito]; 
 
-            if (cartParaPedido.length === 0) {
-                mostrarNotificacion('⚠️ Tu carrito está vacío.');
-                return;
-            }
-
+            // Bloquear la UI inmediatamente para prevenir clics dobles o re-intentos.
             btnPedido.disabled = true;
             btnPedido.textContent = 'Procesando pedido...';
-            
+
+            // Tomar una "foto" del estado actual del carrito y los datos del formulario.
+            const cartParaPedido = [...carrito];
             const nombre = document.getElementById('nombreCliente').value;
             const telefono = document.getElementById('telefonoCliente').value;
             const email = document.getElementById('emailCliente').value || null;
@@ -2601,10 +2598,21 @@ NOTIFY pgrst_reload_schema;
             let latitud = document.getElementById('latitudCliente').value;
             let longitud = document.getElementById('longitudCliente').value;
 
+            if (cartParaPedido.length === 0) {
+                mostrarNotificacion('⚠️ Tu carrito está vacío.');
+                btnPedido.disabled = false; // Desbloquear si no hay nada que procesar.
+                btnPedido.textContent = 'Realizar Pedido';
+                return;
+            }
+
+            // Acción atómica y crítica: Vaciar el carrito principal.
+            // A partir de este punto, cualquier otro llamado a esta función encontrará
+            // un carrito vacío y no podrá generar un pedido duplicado.
             carrito = [];
             actualizarContadorCarrito();
 
             try {
+                // Realizar operaciones asíncronas (que pueden tardar) de forma segura.
                 if (!latitud || !longitud) {
                     const coords = await geocodeDireccion(direccion);
                     if (coords) {
@@ -2660,12 +2668,15 @@ NOTIFY pgrst_reload_schema;
                     console.warn('El pedido se guardó, pero falló el envío al webhook:', webhookError.message);
                 }
 
+                // Éxito: Mostrar mensaje de confirmación. El formulario ya no es necesario.
                 document.getElementById('cartContent').style.display = 'none';
                 document.getElementById('successMessage').style.display = 'block';
 
             } catch (error) {
+                // En caso de error, restaurar el carrito a su estado original.
                 carrito = cartParaPedido;
                 actualizarContadorCarrito();
+                // Volver a renderizar el formulario del carrito, lo que creará un nuevo botón habilitado.
                 renderizarCarrito(); 
                 alert('Error al realizar el pedido: ' + error.message);
             }
