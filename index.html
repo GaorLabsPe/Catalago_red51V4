@@ -2577,19 +2577,28 @@ NOTIFY pgrst_reload_schema;
             });
         }
 
-
         async function realizarPedido(event) {
             event.preventDefault();
-            if (isSubmittingOrder) return; // Previene doble envío
+            if (isSubmittingOrder) return;
+
+            const btnPedido = document.getElementById('btnRealizarPedido');
+            const cartParaPedido = [...carrito]; 
+
+            if (cartParaPedido.length === 0) {
+                mostrarNotificacion('⚠️ Tu carrito está vacío.');
+                return;
+            }
 
             isSubmittingOrder = true;
-            const btnPedido = document.getElementById('btnRealizarPedido');
             btnPedido.disabled = true;
             btnPedido.textContent = 'Procesando pedido...';
-            
+
             try {
-                const total = carrito.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
-                const cantidad = carrito.reduce((sum, item) => sum + item.cantidad, 0);
+                carrito = [];
+                actualizarContadorCarrito();
+
+                const total = cartParaPedido.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
+                const cantidad = cartParaPedido.reduce((sum, item) => sum + item.cantidad, 0);
                 const direccion = document.getElementById('direccionCliente').value;
                 let latitud = document.getElementById('latitudCliente').value;
                 let longitud = document.getElementById('longitudCliente').value;
@@ -2607,7 +2616,7 @@ NOTIFY pgrst_reload_schema;
                     telefono_cliente: document.getElementById('telefonoCliente').value,
                     email_cliente: document.getElementById('emailCliente').value || null,
                     direccion: direccion,
-                    productos: carrito.map(item => {
+                    productos: cartParaPedido.map(item => {
                         const productoOriginal = productos.find(p => p.id === item.id);
                         const costoUnitario = productoOriginal ? (productoOriginal.precio_costo || 0) : 0;
                         return {
@@ -2616,7 +2625,7 @@ NOTIFY pgrst_reload_schema;
                             marca: item.marca, 
                             cantidad: item.cantidad,
                             precio_unitario: parseFloat(item.precio),
-                            costo_unitario: costoUnitario, // Guardar el costo en el momento de la venta
+                            costo_unitario: costoUnitario,
                             subtotal: parseFloat(item.precio) * item.cantidad,
                             variantes: item.variantes_seleccionadas
                         };
@@ -2645,26 +2654,26 @@ NOTIFY pgrst_reload_schema;
                 } catch (webhookError) {
                     console.warn('El pedido se guardó, pero falló el envío al webhook:', webhookError.message);
                 }
-                
-                // FIX: Vaciar el carrito inmediatamente después del éxito para prevenir pedidos duplicados.
-                carrito = [];
-                actualizarContadorCarrito();
 
                 document.getElementById('cartContent').style.display = 'none';
                 document.getElementById('successMessage').style.display = 'block';
 
             } catch (error) {
+                carrito = cartParaPedido;
+                actualizarContadorCarrito();
+                renderizarCarrito(); 
                 alert('Error al realizar el pedido: ' + error.message);
-                btnPedido.disabled = false;
-                btnPedido.textContent = 'Realizar Pedido';
             } finally {
-                isSubmittingOrder = false; // Liberar el bloqueo
+                isSubmittingOrder = false;
             }
         }
 
         function cerrarYLimpiar() {
             cerrarCarrito();
-            document.getElementById('cartContent').style.display = 'block';
+            const cartContent = document.getElementById('cartContent');
+            cartContent.style.display = 'block';
+            document.getElementById('successMessage').style.display = 'none';
+            renderizarCarrito();
         }
         
         // --- ADMIN: Pedidos ---
