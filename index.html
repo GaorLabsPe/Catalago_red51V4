@@ -1222,6 +1222,7 @@
                                         <th>Nombre</th>
                                         <th>Categoria</th>
                                         <th>Precio</th>
+                                        <th>Stock</th>
                                         <th>Variantes</th>
                                         <th>Estado</th>
                                         <th>Acciones</th>
@@ -1279,17 +1280,21 @@
                         <p>¡Bienvenido al panel de control de tu tienda! Sigue estos pasos para poner todo en marcha:</p>
                         <ol>
                             <li><strong>Crea tus Categorías:</strong> Ve a la pestaña <strong>"Categorías"</strong> y añade las secciones para tus productos (ej: Laptops, Accesorios, Smartphones).</li>
-                            <li><strong>Añade tus Productos:</strong> En la pestaña <strong>"Productos"</strong>, haz clic en "+ Agregar Producto". Rellena los detalles y, muy importante, ¡asígnale una categoría!</li>
+                            <li><strong>Añade tus Productos:</strong> En la pestaña <strong>"Productos"</strong>, haz clic en "+ Agregar Producto". Rellena los detalles, incluyendo el <strong>stock inicial</strong>, y asígnale una categoría.</li>
                             <li><strong>Personaliza tu Portada:</strong> Ve a <strong>"Configuración"</strong> y pega la URL de una imagen atractiva para la sección principal de tu tienda.</li>
-                            <li><strong>Gestiona tus Pedidos:</strong> Cuando recibas una venta, aparecerá en la pestaña <strong>"Pedidos"</strong>. Podrás ver los detalles del cliente y cambiar el estado del envío.</li>
+                            <li><strong>Gestiona tus Pedidos:</strong> Cuando recibas una venta, aparecerá en la pestaña <strong>"Pedidos"</strong>. Al cambiar el estado a "Pago Confirmado" o "En Preparación", el stock se descontará automáticamente.</li>
                         </ol>
                     </div>
                     <div class="help-card">
                         <h3>🤔 Preguntas Frecuentes (FAQ)</h3>
                         <ul>
+                             <li>
+                                <strong>¿Cómo funciona el descuento de stock?</strong>
+                                <p>El sistema está diseñado para ser automático. Cuando cambias el estado de un pedido a <strong>"Pago Confirmado"</strong> o <strong>"En Preparación"</strong>, el sistema intentará descontar las unidades del inventario. Si un producto no tiene suficiente stock para completar el pedido, la operación se detendrá y recibirás un mensaje de error, protegiendo tu inventario. El sistema también evita descontar el stock más de una vez por el mismo pedido.</p>
+                            </li>
                             <li>
                                 <strong>¿Cómo funcionan los productos con variantes (ej: color, talla)?</strong>
-                                <p>Al crear o editar un producto, busca la sección "Variantes". Haz clic en "+ Agregar tipo" para crear un tipo de variante (ej: "Color"). Luego, añade las opciones (ej: "Rojo", "Azul", "Verde") y presiona Enter. Para cada opción, puedes hacer clic en el ícono 🖼️ para asignarle una imagen específica. Puedes añadir múltiples tipos como "Talla", "Almacenamiento", etc. Tus clientes deberán elegir una opción de cada tipo antes de comprar.</p>
+                                <p>Al crear o editar un producto, busca la sección "Variantes". Haz clic en "+ Agregar tipo" para crear un tipo de variante (ej: "Color"). Luego, añade las opciones (ej: "Rojo", "Azul", "Verde") y presiona Enter. Para cada opción, puedes hacer clic en el ícono 🖼️ para asignarle una imagen específica. Puedes añadir múltiples tipos como "Talla", "Almacenamiento", etc. Tus clientes deberán elegir una opción de cada tipo antes de comprar. <strong>Nota:</strong> El stock actual se gestiona a nivel de producto general, no por variante individual.</p>
                             </li>
                             <li>
                                 <strong>¿La subida de imágenes no funciona?</strong>
@@ -1321,23 +1326,23 @@
                                     </p>
                                     <div class="sql-code" style="max-height: 400px; overflow-y: auto; margin-top: 1.5rem; text-align: left;">
 <pre>
--- ========= SCRIPT DE CONFIGURACIÓN Y SINCRONIZACIÓN v7 (Soluciona error 'categoria') =========
+-- ========= SCRIPT DE CONFIGURACIÓN Y SINCRONIZACIÓN v8 (Gestión de Stock) =========
 CREATE TABLE IF NOT EXISTS public.categorias (id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY, nombre text NOT NULL, slug text NOT NULL UNIQUE, created_at timestamptz DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.productos (id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY, nombre text NOT NULL, precio numeric NOT NULL DEFAULT 0, created_at timestamptz DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.pedidos (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), numero_pedido serial NOT NULL, fecha_pedido timestamptz DEFAULT now(), nombre_cliente text, telefono_cliente text, email_cliente text, direccion text, productos jsonb, total numeric, cantidad_items integer, estado text, latitud double precision, longitud double precision);
 CREATE TABLE IF NOT EXISTS public.configuracion (clave text PRIMARY KEY, valor text, updated_at timestamptz DEFAULT now());
 
 -- Sincronización de la tabla 'productos'
-ALTER TABLE public.productos DROP COLUMN IF EXISTS categoria; -- Elimina columna obsoleta que causa errores.
-ALTER TABLE public.productos ADD COLUMN IF NOT EXISTS marca text, ADD COLUMN IF NOT EXISTS descripcion text, ADD COLUMN IF NOT EXISTS imagen_url text, ADD COLUMN IF NOT EXISTS icon text, ADD COLUMN IF NOT EXISTS badge text, ADD COLUMN IF NOT EXISTS activo boolean DEFAULT true, ADD COLUMN IF NOT EXISTS variantes jsonb, ADD COLUMN IF NOT EXISTS categoria_id bigint;
+ALTER TABLE public.productos DROP COLUMN IF EXISTS categoria;
+ALTER TABLE public.productos ADD COLUMN IF NOT EXISTS marca text, ADD COLUMN IF NOT EXISTS descripcion text, ADD COLUMN IF NOT EXISTS imagen_url text, ADD COLUMN IF NOT EXISTS icon text, ADD COLUMN IF NOT EXISTS badge text, ADD COLUMN IF NOT EXISTS activo boolean DEFAULT true, ADD COLUMN IF NOT EXISTS variantes jsonb, ADD COLUMN IF NOT EXISTS categoria_id bigint, ADD COLUMN IF NOT EXISTS stock integer NOT NULL DEFAULT 0;
 ALTER TABLE public.productos DROP CONSTRAINT IF EXISTS productos_categoria_id_fkey; 
 ALTER TABLE public.productos ADD CONSTRAINT productos_categoria_id_fkey FOREIGN KEY (categoria_id) REFERENCES public.categorias(id) ON DELETE SET NULL;
 
+-- Sincronización de la tabla 'pedidos'
+ALTER TABLE public.pedidos ADD COLUMN IF NOT EXISTS stock_descontado boolean DEFAULT false NOT NULL;
+
 -- Políticas de Seguridad (RLS)
-ALTER TABLE public.categorias ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.productos ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.pedidos ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.configuracion ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.categorias ENABLE ROW LEVEL SECURITY; ALTER TABLE public.productos ENABLE ROW LEVEL SECURITY; ALTER TABLE public.pedidos ENABLE ROW LEVEL SECURITY; ALTER TABLE public.configuracion ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public read access" ON public.categorias; CREATE POLICY "Public read access" ON public.categorias FOR SELECT USING (true);
 DROP POLICY IF EXISTS "Public read access" ON public.productos; CREATE POLICY "Public read access" ON public.productos FOR SELECT USING (true);
 DROP POLICY IF EXISTS "Public read access" ON public.configuracion; CREATE POLICY "Public read access" ON public.configuracion FOR SELECT USING (true);
@@ -1346,6 +1351,53 @@ DROP POLICY IF EXISTS "Allow full access for authenticated users" ON public.cate
 DROP POLICY IF EXISTS "Allow full access for authenticated users" ON public.productos; CREATE POLICY "Allow full access for authenticated users" ON public.productos FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 DROP POLICY IF EXISTS "Allow full access for authenticated users" ON public.pedidos; CREATE POLICY "Allow full access for authenticated users" ON public.pedidos FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 DROP POLICY IF EXISTS "Allow full access for authenticated users" ON public.configuracion; CREATE POLICY "Allow full access for authenticated users" ON public.configuracion FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+
+-- FUNCIÓN PARA DESCONTAR STOCK (Transaccional y segura)
+CREATE OR REPLACE FUNCTION public.descontar_stock_pedido(id_pedido uuid)
+RETURNS text
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    producto_rec record;
+    producto_stock_actual integer;
+BEGIN
+    -- Verificar si el stock ya fue descontado
+    IF (SELECT stock_descontado FROM public.pedidos WHERE id = id_pedido) THEN
+        RETURN 'El stock para este pedido ya fue descontado previamente.';
+    END IF;
+
+    -- Verificar stock ANTES de descontar
+    FOR producto_rec IN
+        SELECT
+            (p->>'id')::bigint AS producto_id,
+            (p->>'cantidad')::integer AS cantidad,
+            (p->>'producto')::text AS nombre_producto
+        FROM public.pedidos, jsonb_array_elements(productos) AS p
+        WHERE id = id_pedido
+    LOOP
+        SELECT stock INTO producto_stock_actual FROM public.productos WHERE id = producto_rec.producto_id;
+        IF producto_stock_actual < producto_rec.cantidad THEN
+            RAISE EXCEPTION 'Stock insuficiente para el producto: "%". Stock actual: %, Requerido: %', producto_rec.nombre_producto, producto_stock_actual, producto_rec.cantidad;
+        END IF;
+    END LOOP;
+
+    -- Si hay stock, proceder con el descuento
+    FOR producto_rec IN
+        SELECT (p->>'id')::bigint AS producto_id, (p->>'cantidad')::integer AS cantidad
+        FROM public.pedidos, jsonb_array_elements(productos) AS p
+        WHERE id = id_pedido
+    LOOP
+        UPDATE public.productos SET stock = stock - producto_rec.cantidad WHERE id = producto_rec.producto_id;
+    END LOOP;
+
+    -- Marcar el pedido como procesado
+    UPDATE public.pedidos SET stock_descontado = true WHERE id = id_pedido;
+    RETURN 'Stock descontado exitosamente.';
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.descontar_stock_pedido(uuid) TO authenticated;
 NOTIFY pgrst_reload_schema;
 </pre>
                                     </div>
@@ -1406,9 +1458,15 @@ NOTIFY pgrst_reload_schema;
                         <label>Descripcion</label>
                         <textarea id="productoDescripcion" required></textarea>
                     </div>
-                    <div class="form-group">
-                        <label>Precio (S/)</label>
-                        <input type="number" id="productoPrecio" step="0.01" min="0" required>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label>Precio (S/)</label>
+                            <input type="number" id="productoPrecio" step="0.01" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Stock</label>
+                            <input type="number" id="productoStock" min="0" required value="0">
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>Imagen Principal (URL) - Usada si no hay imágenes en variantes</label>
@@ -1794,6 +1852,7 @@ NOTIFY pgrst_reload_schema;
                             : `<span>${producto.icon || '📦'}</span>`
                         }
                         ${producto.badge ? `<span class="product-badge">${producto.badge}</span>` : ''}
+                        ${producto.stock <= 0 ? `<span class="product-badge" style="background: var(--text-dark); left: 15px; right: auto;">Agotado</span>` : ''}
                     </div>
                     <div class="product-info">
                         <div class="product-category">${producto.categorias ? producto.categorias.nombre : 'Sin Categoría'}</div>
@@ -1801,9 +1860,12 @@ NOTIFY pgrst_reload_schema;
                         <div class="product-brand">${producto.marca}</div>
                         <p class="product-description">${producto.descripcion}</p>
                         <div class="product-price">S/ ${parseFloat(producto.precio).toFixed(2)}</div>
-                        ${hasVariants 
-                            ? `<button class="add-to-cart-btn" onclick="abrirModalDetalleProducto(${producto.id})">Ver Opciones</button>`
-                            : `<button class="add-to-cart-btn" onclick="agregarAlCarrito(${producto.id})">Agregar al Carrito</button>`
+                        ${producto.stock > 0 ?
+                            (hasVariants 
+                                ? `<button class="add-to-cart-btn" onclick="abrirModalDetalleProducto(${producto.id})">Ver Opciones</button>`
+                                : `<button class="add-to-cart-btn" onclick="agregarAlCarrito(${producto.id})">Agregar al Carrito</button>`
+                            )
+                            : `<button class="add-to-cart-btn" disabled style="background: var(--text-light); cursor: not-allowed;">Agotado</button>`
                         }
                     </div>
                 </div>
@@ -2268,19 +2330,34 @@ NOTIFY pgrst_reload_schema;
 
         async function cambiarEstadoPedido(pedidoId, nuevoEstado) {
             try {
-                 const { error } = await supabaseClient
+                if (['pago_confirmado', 'en_preparacion'].includes(nuevoEstado)) {
+                    const { error: rpcError } = await supabaseClient.rpc('descontar_stock_pedido', { id_pedido: pedidoId });
+                    if (rpcError) {
+                         throw new Error(`No se pudo procesar. ${rpcError.message}`);
+                    }
+                    mostrarNotificacion('📦 Stock descontado exitosamente.');
+                }
+                
+                const { error } = await supabaseClient
                     .from('pedidos')
                     .update({ estado: nuevoEstado })
                     .eq('id', pedidoId);
-                
                 if (error) throw error;
                 
-                mostrarNotificacion(`✅ Estado del pedido actualizado`);
+                mostrarNotificacion(`✅ Estado del pedido actualizado a: ${nuevoEstado.replace('_', ' ')}`);
+
                 const pedidoIndex = pedidos.findIndex(p => p.id === pedidoId);
                 if (pedidoIndex !== -1) {
                     pedidos[pedidoIndex].estado = nuevoEstado;
+                    if (['pago_confirmado', 'en_preparacion'].includes(nuevoEstado)) {
+                        pedidos[pedidoIndex].stock_descontado = true;
+                    }
                 }
                 renderizarPedidos();
+                
+                // Recargar productos para reflejar el cambio de stock
+                await cargarProductosAdmin();
+                await cargarProductos();
 
                 const modalSelect = document.getElementById('modalStatusSelect');
                 if (modalSelect) {
@@ -2290,6 +2367,7 @@ NOTIFY pgrst_reload_schema;
 
             } catch(error) {
                 alert("Error al actualizar el estado: " + error.message);
+                await cargarPedidos(); // Recargar para revertir la UI a su estado real
             }
         }
 
@@ -2403,6 +2481,7 @@ NOTIFY pgrst_reload_schema;
                         <td>${p.nombre}</td>
                         <td>${p.categorias ? p.categorias.nombre : 'Sin categoría'}</td>
                         <td>S/ ${parseFloat(p.precio).toFixed(2)}</td>
+                        <td style="font-weight: 600; color: ${p.stock <= 5 ? 'var(--danger)' : 'var(--text-dark)'}">${p.stock}</td>
                         <td>${p.variantes && p.variantes.length > 0 ? `${p.variantes.length} tipo(s)` : 'No'}</td>
                         <td>${p.activo ? 'Activo' : 'Inactivo'}</td>
                         <td class="table-actions">
@@ -2550,6 +2629,7 @@ NOTIFY pgrst_reload_schema;
                 document.getElementById('productoMarca').value = data.marca;
                 document.getElementById('productoDescripcion').value = data.descripcion;
                 document.getElementById('productoPrecio').value = data.precio;
+                document.getElementById('productoStock').value = data.stock;
                 document.getElementById('productoIcon').value = data.icon || '';
                 document.getElementById('productoBadge').value = data.badge || '';
                 document.getElementById('productoActivo').checked = data.activo;
@@ -2677,6 +2757,7 @@ NOTIFY pgrst_reload_schema;
                 categoria_id: categoriaIdValue ? parseInt(categoriaIdValue) : null,
                 descripcion: document.getElementById('productoDescripcion').value,
                 precio: parseFloat(document.getElementById('productoPrecio').value),
+                stock: parseInt(document.getElementById('productoStock').value),
                 icon: document.getElementById('productoIcon').value || '📦',
                 badge: document.getElementById('productoBadge').value || null,
                 activo: document.getElementById('productoActivo').checked,
@@ -2773,8 +2854,8 @@ NOTIFY pgrst_reload_schema;
 
         function descargarPlantilla() {
             const data = [
-                ["nombre", "marca", "categoria_id", "descripcion", "precio", "icon", "badge", "activo"],
-                ["iPhone 15 Pro", "Apple", 1, "Smartphone premium con la última tecnología", 4599.00, "📱", "Nuevo", true]
+                ["nombre", "marca", "categoria_id", "descripcion", "precio", "stock", "icon", "badge", "activo"],
+                ["iPhone 15 Pro", "Apple", 1, "Smartphone premium con la última tecnología", 4599.00, 50, "📱", "Nuevo", true]
             ];
             const ws = XLSX.utils.aoa_to_sheet(data);
             const wb = XLSX.utils.book_new();
@@ -2821,6 +2902,7 @@ NOTIFY pgrst_reload_schema;
                         categoria_id: p.categoria_id ? parseInt(p.categoria_id) : null,
                         descripcion: p.descripcion,
                         precio: p.precio ? parseFloat(p.precio) : 0,
+                        stock: p.stock ? parseInt(p.stock) : 0,
                         icon: p.icon,
                         badge: p.badge,
                         activo: String(p.activo).toLowerCase() === 'true'
