@@ -523,48 +523,70 @@ function cerrarCarrito() {
 window.cerrarCarrito = cerrarCarrito;
 
 function renderizarCarrito() {
+    const container = document.getElementById('cartModalBody');
     const content = document.getElementById('cartContent');
     document.getElementById('successMessage').style.display = 'none';
+    
     if (carrito.length === 0) {
-        content.innerHTML = `<div class="empty-cart"><div class="empty-cart-icon">🛒</div><p>Tu carrito esta vacio</p></div>`;
+        container.innerHTML = `<div id="cartContent"><div class="empty-cart"><div class="empty-cart-icon">🛒</div><p>Tu carrito esta vacio</p></div></div>
+                               <div id="successMessage" class="success-message">
+                                    <div class="success-icon">✓</div>
+                                    <h3>Pedido Realizado con Exito</h3>
+                                    <p>Hemos recibido tu pedido. Revisa el estado en tu cuenta o contactanos para coordinar la entrega.</p>
+                                    <button class="btn-primary" onclick="cerrarYLimpiar()">Continuar Comprando</button>
+                               </div>`;
         return;
     }
     const total = carrito.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
-    content.innerHTML = `
-        ${carrito.map(item => `
-            <div class="cart-item">
-                <div class="cart-item-icon">${item.icon || '📦'}</div>
-                <div class="cart-item-info">
-                    <div class="cart-item-name">${item.nombre}</div>
-                     ${item.variantes_seleccionadas ? `<div class="cart-item-variants">${Object.entries(item.variantes_seleccionadas).map(([k, v]) => `${k}: ${v}`).join(', ')}</div>` : ''}
-                    <div class="cart-item-brand">${item.marca}</div>
-                    <div class="cart-item-price">S/ ${parseFloat(item.precio).toFixed(2)} c/u</div>
-                    <div class="cart-item-controls">
-                        <button class="qty-btn" onclick="cambiarCantidad('${item.cartId}', -1)">-</button>
-                        <span class="qty-display">${item.cantidad}</span>
-                        <button class="qty-btn" onclick="cambiarCantidad('${item.cartId}', 1)">+</button>
-                        <button class="remove-btn" onclick="eliminarItem('${item.cartId}')">Eliminar</button>
+    container.innerHTML = `
+        <div id="cartContent">
+            ${carrito.map(item => `
+                <div class="cart-item">
+                    <div class="cart-item-icon">${item.icon || '📦'}</div>
+                    <div class="cart-item-info">
+                        <div class="cart-item-name">${item.nombre}</div>
+                         ${item.variantes_seleccionadas ? `<div class="cart-item-variants">${Object.entries(item.variantes_seleccionadas).map(([k, v]) => `${k}: ${v}`).join(', ')}</div>` : ''}
+                        <div class="cart-item-brand">${item.marca}</div>
+                        <div class="cart-item-price">S/ ${parseFloat(item.precio).toFixed(2)} c/u</div>
+                        <div class="cart-item-controls">
+                            <button class="qty-btn" onclick="cambiarCantidad('${item.cartId}', -1)">-</button>
+                            <span class="qty-display">${item.cantidad}</span>
+                            <button class="qty-btn" onclick="cambiarCantidad('${item.cartId}', 1)">+</button>
+                            <button class="remove-btn" onclick="eliminarItem('${item.cartId}')">Eliminar</button>
+                        </div>
+                    </div>
+                    <div style="font-weight: 700; font-size: 1.2rem; color: var(--primary);">
+                        S/ ${(item.precio * item.cantidad).toFixed(2)}
                     </div>
                 </div>
-                <div style="font-weight: 700; font-size: 1.2rem; color: var(--primary);">
-                    S/ ${(item.precio * item.cantidad).toFixed(2)}
+            `).join('')}
+            <div class="cart-total">
+                <span class="cart-total-label">Total:</span>
+                <span class="cart-total-amount">S/ ${total.toFixed(2)}</span>
+            </div>
+            <form class="checkout-form" id="checkoutForm">
+                <input type="hidden" id="latitudCliente"><input type="hidden" id="longitudCliente">
+                <div class="form-group"><label>Nombre Completo</label><input type="text" id="nombreCliente" required></div>
+                <div class="form-group"><label>Telefono (sin prefijo +51)</label><input type="tel" id="telefonoCliente" required placeholder="905820448"></div>
+                <div class="form-group"><label>Email (Opcional)</label><input type="email" id="emailCliente" placeholder="cliente@ejemplo.com"></div>
+                <div class="form-group">
+                    <label>Direccion de Entrega</label>
+                    <textarea id="direccionCliente" required></textarea>
+                     <div class="location-btn-group">
+                        <button type="button" class="btn-secondary location-btn" onclick="usarUbicacionActual()">📍 Usar mi ubicación actual</button>
+                        <button type="button" class="btn-secondary location-btn" onclick="seleccionarUbicacionEnMapa()">🗺️ Seleccionar en el mapa</button>
+                    </div>
                 </div>
-            </div>
-        `).join('')}
-        <div class="cart-total">
-            <span class="cart-total-label">Total:</span>
-            <span class="cart-total-amount">S/ ${total.toFixed(2)}</span>
+                <button type="submit" class="btn-primary" id="btnRealizarPedido">Realizar Pedido</button>
+            </form>
         </div>
-        <form class="checkout-form" id="checkoutForm">
-            <div class="form-group"><label>Nombre Completo</label><input type="text" id="nombreCliente" required></div>
-            <div class="form-group"><label>Telefono (sin prefijo +51)</label><input type="tel" id="telefonoCliente" required placeholder="905820448"></div>
-            <div class="form-group"><label>Email (Opcional)</label><input type="email" id="emailCliente" placeholder="cliente@ejemplo.com"></div>
-            <div class="form-group">
-                <label>Direccion de Entrega</label>
-                <textarea id="direccionCliente" required></textarea>
-            </div>
-            <button type="submit" class="btn-primary" id="btnRealizarPedido">Realizar Pedido</button>
-        </form>`;
+        <div id="successMessage" class="success-message">
+            <div class="success-icon">✓</div>
+            <h3>Pedido Realizado con Exito</h3>
+            <p>Hemos recibido tu pedido. Revisa el estado en tu cuenta o contactanos para coordinar la entrega.</p>
+            <button class="btn-primary" onclick="cerrarYLimpiar()">Continuar Comprando</button>
+        </div>
+    `;
 }
 
 function cambiarCantidad(cartId, cambio) {
@@ -601,34 +623,42 @@ async function realizarPedido() {
         console.warn("Pedido ya en proceso. Intento duplicado bloqueado.");
         return;
     }
+    isProcessingOrder = true;
+
+    const btnPedido = document.getElementById('btnRealizarPedido') as HTMLButtonElement;
+    if (btnPedido) {
+        btnPedido.disabled = true;
+        btnPedido.textContent = 'Procesando...';
+    }
     
-    // Check for empty cart first
-    if (carrito.length === 0) {
-        mostrarNotificacion('⚠️ Tu carrito está vacío.');
-        return;
-    }
-
-    const form = document.getElementById('checkoutForm');
-    if (!form) {
-        console.warn("Formulario no encontrado, posible intento de duplicado bloqueado.");
-        return; 
-    }
-
-    // 1. Read all values from the form BEFORE modifying it
-    const nombre = (document.getElementById('nombreCliente') as HTMLInputElement).value;
-    const telefono = (document.getElementById('telefonoCliente') as HTMLInputElement).value;
-    const email = (document.getElementById('emailCliente') as HTMLInputElement).value || null;
-    const direccion = (document.getElementById('direccionCliente') as HTMLTextAreaElement).value;
-
-    const cartParaPedido = [...carrito]; // Take a snapshot of the cart
-
+    const cartParaPedido = [...carrito];
+    
     try {
-        isProcessingOrder = true;
+        if (cartParaPedido.length === 0) {
+            mostrarNotificacion('⚠️ Tu carrito está vacío.');
+            return;
+        }
 
-        // 2. NOW it's safe to modify the form to show a loading state
-        form.innerHTML = '<div class="loading" style="padding: 2rem 0;">Procesando tu pedido...</div>'; 
+        const nombre = (document.getElementById('nombreCliente') as HTMLInputElement).value;
+        const telefono = (document.getElementById('telefonoCliente') as HTMLInputElement).value;
+        const email = (document.getElementById('emailCliente') as HTMLInputElement).value || null;
+        let direccion = (document.getElementById('direccionCliente') as HTMLTextAreaElement).value;
+        let latitud = (document.getElementById('latitudCliente') as HTMLInputElement).value;
+        let longitud = (document.getElementById('longitudCliente') as HTMLInputElement).value;
 
-        // Empty the main cart immediately to prevent duplicates
+        if (!latitud || !longitud) {
+            if(btnPedido) btnPedido.textContent = 'Obteniendo ubicación...';
+            const coords = await geocodeDireccion(direccion);
+            if (coords) {
+                latitud = coords.lat;
+                longitud = coords.lon;
+                const direccionInversa = await reverseGeocode(coords.lat, coords.lon);
+                if (direccionInversa) direccion = direccionInversa;
+            }
+        }
+        
+        if(btnPedido) btnPedido.textContent = 'Guardando pedido...';
+
         carrito = [];
         actualizarContadorCarrito();
         
@@ -658,7 +688,9 @@ async function realizarPedido() {
                 direccion_c: direccion,
                 productos_c: productosParaPedido,
                 total_c: total,
-                cantidad_c: cantidad
+                cantidad_c: cantidad,
+                latitud_c: latitud ? parseFloat(latitud) : null,
+                longitud_c: longitud ? parseFloat(longitud) : null
             });
 
         if (error) throw error;
@@ -672,15 +704,14 @@ async function realizarPedido() {
         } catch (webhookError) {
             console.warn('El pedido se guardó, pero falló el envío al webhook:', (webhookError as Error).message);
         }
-
+        
         document.getElementById('cartContent').style.display = 'none';
         document.getElementById('successMessage').style.display = 'block';
 
     } catch (error) {
-        // Restore cart on failure
         carrito = cartParaPedido;
         actualizarContadorCarrito();
-        renderizarCarrito(); // Re-render cart with items and active button
+        renderizarCarrito();
         alert('Error al realizar el pedido: ' + (error as Error).message);
     } finally {
         isProcessingOrder = false;
@@ -690,10 +721,14 @@ window.realizarPedido = realizarPedido;
 
 function cerrarYLimpiar() {
     cerrarCarrito();
-    const cartContent = document.getElementById('cartContent');
-    cartContent.style.display = 'block';
-    document.getElementById('successMessage').style.display = 'none';
-    renderizarCarrito();
+    // Delay to ensure modal is closed before re-rendering
+    setTimeout(() => {
+        const cartContent = document.getElementById('cartContent');
+        if (cartContent) cartContent.style.display = 'block';
+        const successMessage = document.getElementById('successMessage');
+        if (successMessage) successMessage.style.display = 'none';
+        renderizarCarrito();
+    }, 300);
 }
 window.cerrarYLimpiar = cerrarYLimpiar;
 
@@ -748,7 +783,7 @@ function renderizarPedidos() {
 
     const tbody = document.getElementById('adminPedidosTable');
     if(pedidosFiltrados.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 2rem;">No hay pedidos con este estado.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 2rem;">No hay pedidos con este estado.</td></tr>`;
         return;
     }
     tbody.innerHTML = pedidosFiltrados.map(p => `
@@ -761,6 +796,9 @@ function renderizarPedidos() {
                  <select class="status-select ${p.estado}" onchange="cambiarEstadoPedido('${p.id}', this.value)">
                     ${estadosPosibles.map(e => `<option value="${e}" ${e === p.estado ? 'selected' : ''}>${e.replace(/_/g, ' ')}</option>`).join('')}
                 </select>
+            </td>
+            <td>
+                ${p.latitud && p.longitud ? `<span class="map-icon" onclick="event.stopPropagation(); abrirMapaPedido(${p.latitud}, ${p.longitud}, '${p.direccion.replace(/'/g, "\\'")}')">🗺️</span>` : '<span>-</span>'}
             </td>
         </tr>
     `).join('');
@@ -780,7 +818,9 @@ async function verDetallesPedido(pedidoId) {
                     <p><strong>Nombre:</strong> ${pedido.nombre_cliente}</p>
                     <p><strong>Teléfono:</strong> ${pedido.telefono_cliente}</p>
                     <p><strong>Email:</strong> ${pedido.email_cliente || 'No provisto'}</p>
-                    <p><strong>Dirección:</strong> ${pedido.direccion}</p>
+                    <p><strong>Dirección:</strong> ${pedido.direccion}
+                        ${pedido.latitud && pedido.longitud ? `<span class="map-icon" style="margin-left: 0.5rem;" onclick="abrirMapaPedido(${pedido.latitud}, ${pedido.longitud}, '${pedido.direccion.replace(/'/g, "\\'")}')">🗺️</span>` : ''}
+                    </p>
                 </div>
                 <div>
                     <h4>Resumen del Pedido</h4>
@@ -2171,6 +2211,109 @@ function mostrarNotificacion(mensaje) {
     document.body.appendChild(notif);
     setTimeout(() => notif.remove(), 3000);
 }
+// --- Location / Map Functions ---
+let map;
+let marker;
+
+async function geocodeDireccion(direccion) {
+    try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(direccion)}`);
+        const data = await response.json();
+        if (data && data.length > 0) {
+            return { lat: data[0].lat, lon: data[0].lon };
+        }
+        return null;
+    } catch (error) {
+        console.error("Error en geocodificación:", error);
+        return null;
+    }
+}
+window.geocodeDireccion = geocodeDireccion;
+
+async function reverseGeocode(lat, lon) {
+    try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
+        const data = await response.json();
+        return data.display_name || null;
+    } catch (error) {
+        console.error("Error en geocodificación inversa:", error);
+        return null;
+    }
+}
+window.reverseGeocode = reverseGeocode;
+
+function usarUbicacionActual() {
+    if ("geolocation" in navigator) {
+        const btn = document.querySelector('.location-btn');
+        const originalText = btn.textContent;
+        btn.textContent = 'Obteniendo...';
+        navigator.geolocation.getCurrentPosition(async (position) => {
+            const { latitude, longitude } = position.coords;
+            (document.getElementById('latitudCliente') as HTMLInputElement).value = latitude.toString();
+            (document.getElementById('longitudCliente') as HTMLInputElement).value = longitude.toString();
+            const direccion = await reverseGeocode(latitude, longitude);
+            if (direccion) {
+                (document.getElementById('direccionCliente') as HTMLTextAreaElement).value = direccion;
+            }
+            mostrarNotificacion('📍 Ubicación obtenida con éxito.');
+            btn.textContent = originalText;
+        }, (error) => {
+            alert("No se pudo obtener la ubicación: " + error.message);
+            btn.textContent = originalText;
+        });
+    } else {
+        alert("Geolocalización no es compatible con este navegador.");
+    }
+}
+window.usarUbicacionActual = usarUbicacionActual;
+
+async function seleccionarUbicacionEnMapa() {
+    document.getElementById('mapModal').classList.add('show');
+    if (map) {
+        map.remove();
+    }
+    map = L.map('map').setView([-12.046374, -77.042793], 13); // Lima, Peru
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    map.on('click', async function(e) {
+        const { lat, lng } = e.latlng;
+        if (marker) {
+            map.removeLayer(marker);
+        }
+        marker = L.marker([lat, lng]).addTo(map);
+        
+        (document.getElementById('latitudCliente') as HTMLInputElement).value = lat.toString();
+        (document.getElementById('longitudCliente') as HTMLInputElement).value = lng.toString();
+        const direccion = await reverseGeocode(lat, lng);
+        if (direccion) {
+            (document.getElementById('direccionCliente') as HTMLTextAreaElement).value = direccion;
+        }
+        cerrarModalMapa();
+    });
+    
+    setTimeout(() => { map.invalidateSize() }, 100);
+}
+window.seleccionarUbicacionEnMapa = seleccionarUbicacionEnMapa;
+
+function cerrarModalMapa() {
+    document.getElementById('mapModal').classList.remove('show');
+}
+window.cerrarModalMapa = cerrarModalMapa;
+
+function abrirMapaPedido(lat, lon, direccion) {
+    document.getElementById('mapModal').classList.add('show');
+    if (map) {
+        map.remove();
+    }
+    map = L.map('map').setView([lat, lon], 16);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    L.marker([lat, lon]).addTo(map).bindPopup(direccion).openPopup();
+    
+    setTimeout(() => { map.invalidateSize() }, 100);
+}
+window.abrirMapaPedido = abrirMapaPedido;
 
 window.onclick = function(event) {
     if (event.target == document.getElementById('cartModal')) cerrarCarrito();
@@ -2179,6 +2322,7 @@ window.onclick = function(event) {
     if (event.target == document.getElementById('pedidoModal')) cerrarModalPedido();
     if (event.target == document.getElementById('detalleProductoModal')) cerrarModalDetalleProducto();
     if (event.target == document.getElementById('ingresoStockModal')) cerrarModalIngresoStock();
+    if (event.target == document.getElementById('mapModal')) cerrarModalMapa();
 }
 
 inicializarSupabase();
