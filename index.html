@@ -2645,6 +2645,10 @@ NOTIFY pgrst_reload_schema;
                 } catch (webhookError) {
                     console.warn('El pedido se guardó, pero falló el envío al webhook:', webhookError.message);
                 }
+                
+                // FIX: Vaciar el carrito inmediatamente después del éxito para prevenir pedidos duplicados.
+                carrito = [];
+                actualizarContadorCarrito();
 
                 document.getElementById('cartContent').style.display = 'none';
                 document.getElementById('successMessage').style.display = 'block';
@@ -2659,8 +2663,6 @@ NOTIFY pgrst_reload_schema;
         }
 
         function cerrarYLimpiar() {
-            carrito = [];
-            actualizarContadorCarrito();
             cerrarCarrito();
             document.getElementById('cartContent').style.display = 'block';
         }
