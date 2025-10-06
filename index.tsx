@@ -1,4 +1,5 @@
 
+
 const SUPABASE_URL = 'https://zejzrujrspeoszpfbjce.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InplanpydWpyc3Blb3N6cGZiamNlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2MDMyNDMsImV4cCI6MjA3NTE3OTI0M30.UAi4jQ0BH1hphW7OEh4JWP4hdVJ4CmvX6x4CyP2ak-U';
 const CLOUDINARY_CLOUD_NAME = 'dvj68er8s';
@@ -22,9 +23,6 @@ let datosReporteActual = [];
 let usuarioActual = null;
 // FIX: Type configuracion as any to allow dynamic properties
 let configuracion: any = {};
-let mapa;
-let mapaMarker;
-let onMapaConfirmCallback = null;
 let estadoPedidoActual = 'todos';
 let pedidosChannel = null;
 let productoSeleccionado = null;
@@ -554,11 +552,6 @@ function renderizarCarrito() {
             <div class="form-group">
                 <label>Direccion de Entrega</label>
                 <textarea id="direccionCliente" required></textarea>
-                 <input type="hidden" id="latitudCliente"><input type="hidden" id="longitudCliente">
-                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-                    <button type="button" class="btn-secondary" style="font-size: 0.9rem;" onclick="usarUbicacionActual()">📍 Usar mi ubicación actual</button>
-                    <button type="button" class="btn-secondary" style="font-size: 0.9rem;" onclick="seleccionarUbicacionEnMapa()">🗺️ Seleccionar en el mapa</button>
-                </div>
             </div>
             <button type="button" class="btn-primary" id="btnRealizarPedido" onclick="realizarPedido()">Realizar Pedido</button>
         </form>`;
@@ -593,63 +586,6 @@ function eliminarItem(cartId) {
 }
 window.eliminarItem = eliminarItem;
 
-async function geocodeDireccion(direccion) {
-    try {
-        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(direccion)}`);
-        if (!response.ok) throw new Error('Servicio de geocodificación no disponible');
-        const data = await response.json();
-        if (data && data.length > 0) {
-            return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
-        }
-        return null;
-    } catch (error) {
-        console.warn("No se pudo geocodificar la dirección:", (error as Error).message);
-        return null;
-    }
-}
-
-async function reverseGeocode(lat, lon) {
-    try {
-        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
-        if (!response.ok) throw new Error('Servicio de geocodificación no disponible');
-        const data = await response.json();
-        return data.display_name || `${lat}, ${lon}`;
-    } catch (error) {
-        console.warn("No se pudo obtener la dirección:", (error as Error).message);
-        return "No se pudo obtener la dirección.";
-    }
-}
-
-function usarUbicacionActual() {
-    if (!navigator.geolocation) return alert('La geolocalización no está soportada por tu navegador.');
-    
-    navigator.geolocation.getCurrentPosition(async (position) => {
-        const { latitude, longitude } = position.coords;
-        // FIX: Cast HTML elements and convert number to string for value property
-        (document.getElementById('latitudCliente') as HTMLInputElement).value = latitude.toString();
-        (document.getElementById('longitudCliente') as HTMLInputElement).value = longitude.toString();
-        const direccion = await reverseGeocode(latitude, longitude);
-        (document.getElementById('direccionCliente') as HTMLTextAreaElement).value = direccion;
-        mostrarNotificacion('📍 Ubicación actual obtenida.');
-    }, (error) => {
-        alert('No se pudo obtener tu ubicación. Asegúrate de dar los permisos necesarios.');
-    });
-}
-window.usarUbicacionActual = usarUbicacionActual;
-
-function seleccionarUbicacionEnMapa() {
-    abrirModalMapa(null, null, 'Selecciona la dirección de entrega', true, (lat, lon) => {
-        // FIX: Cast HTML elements and convert number to string for value property
-        (document.getElementById('latitudCliente') as HTMLInputElement).value = lat.toString();
-        (document.getElementById('longitudCliente') as HTMLInputElement).value = lon.toString();
-        reverseGeocode(lat, lon).then(direccion => {
-            (document.getElementById('direccionCliente') as HTMLTextAreaElement).value = direccion;
-        });
-        cerrarModalMapa();
-    });
-}
-window.seleccionarUbicacionEnMapa = seleccionarUbicacionEnMapa;
-
 async function realizarPedido() {
     if (isProcessingOrder) {
         console.warn("Pedido ya en proceso. Intento duplicado bloqueado.");
@@ -668,26 +604,17 @@ async function realizarPedido() {
 
         if (cartParaPedido.length === 0) {
             mostrarNotificacion('⚠️ Tu carrito está vacío.');
-            return;
+            return; // Early return, but inside the try block.
         }
 
         const nombre = (document.getElementById('nombreCliente') as HTMLInputElement).value;
         const telefono = (document.getElementById('telefonoCliente') as HTMLInputElement).value;
         const email = (document.getElementById('emailCliente') as HTMLInputElement).value || null;
         const direccion = (document.getElementById('direccionCliente') as HTMLTextAreaElement).value;
-        let latitud = (document.getElementById('latitudCliente') as HTMLInputElement).value;
-        let longitud = (document.getElementById('longitudCliente') as HTMLInputElement).value;
 
+        // Empty the main cart immediately
         carrito = [];
         actualizarContadorCarrito();
-
-        if (!latitud || !longitud) {
-            const coords = await geocodeDireccion(direccion);
-            if (coords) {
-                latitud = coords.lat.toString();
-                longitud = coords.lon.toString();
-            }
-        }
         
         const total = cartParaPedido.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
         const cantidad = cartParaPedido.reduce((sum, item) => sum + item.cantidad, 0);
@@ -714,8 +641,8 @@ async function realizarPedido() {
             total: total,
             cantidad_items: cantidad,
             estado: 'pendiente_pago',
-            latitud: latitud ? parseFloat(latitud) : null,
-            longitud: longitud ? parseFloat(longitud) : null,
+            latitud: null,
+            longitud: null,
         };
 
         const { data: pedidoGuardado, error } = await supabaseClient
@@ -740,9 +667,10 @@ async function realizarPedido() {
         document.getElementById('successMessage').style.display = 'block';
 
     } catch (error) {
+        // Restore cart on failure
         carrito = cartParaPedido;
         actualizarContadorCarrito();
-        renderizarCarrito();
+        renderizarCarrito(); // Re-render cart with items and active button
         alert('Error al realizar el pedido: ' + (error as Error).message);
     } finally {
         isProcessingOrder = false;
@@ -810,7 +738,7 @@ function renderizarPedidos() {
 
     const tbody = document.getElementById('adminPedidosTable');
     if(pedidosFiltrados.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 2rem;">No hay pedidos con este estado.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 2rem;">No hay pedidos con este estado.</td></tr>`;
         return;
     }
     tbody.innerHTML = pedidosFiltrados.map(p => `
@@ -823,11 +751,6 @@ function renderizarPedidos() {
                  <select class="status-select ${p.estado}" onchange="cambiarEstadoPedido('${p.id}', this.value)">
                     ${estadosPosibles.map(e => `<option value="${e}" ${e === p.estado ? 'selected' : ''}>${e.replace(/_/g, ' ')}</option>`).join('')}
                 </select>
-            </td>
-            <td onclick="event.stopPropagation()" style="text-align: center;">
-                ${p.latitud && p.longitud ? `
-                    <button class="btn-secondary" style="padding: 0.5rem; font-size: 1.2rem; line-height: 1;" onclick="abrirModalMapa(${p.latitud}, ${p.longitud}, 'Ubicación para: ${p.nombre_cliente}')">🗺️</button>
-                ` : `<span>-</span>`}
             </td>
         </tr>
     `).join('');
@@ -860,12 +783,6 @@ async function verDetallesPedido(pedidoId) {
                             ${estadosPosibles.map(e => `<option value="${e}" ${e === pedido.estado ? 'selected' : ''}>${e.replace(/_/g, ' ')}</option>`).join('')}
                         </select>
                     </div>
-                    ${pedido.latitud && pedido.longitud ? `
-                        <div style="display: flex; gap: 0.5rem; width: 100%; margin-top: 1rem;">
-                            <button class="btn-secondary" style="flex: 1;" onclick="abrirModalMapa(${pedido.latitud}, ${pedido.longitud}, 'Ubicación para: ${pedido.nombre_cliente}')">🗺️ Ver en Mapa</button>
-                            <a href="https://maps.google.com/?q=${pedido.latitud},${pedido.longitud}" target="_blank" class="btn-secondary" style="flex: 1; text-align:center; text-decoration: none;">↗️ Abrir en GMaps</a>
-                        </div>
-                    ` : '<p style="margin-top: 1rem; color: var(--text-light);">Ubicación no disponible.</p>'}
                 </div>
             </div>
             <h4 style="margin-top: 2rem; margin-bottom: 1rem;">Productos</h4>
@@ -981,52 +898,6 @@ function suscribirACambiosPedidos() {
         )
         .subscribe();
 }
-
-function abrirModalMapa(lat, lon, title, isInteractive = false, onConfirm = null) {
-    document.getElementById('mapModalTitle').textContent = title || 'Ubicación de Entrega';
-    document.getElementById('mapModal').classList.add('show');
-    
-    onMapaConfirmCallback = onConfirm;
-    document.getElementById('mapaActions').style.display = isInteractive ? 'block' : 'none';
-    
-    setTimeout(() => {
-        if (mapa) mapa.remove();
-        
-        const initialCoords = (lat && lon) ? [lat, lon] : [-12.046374, -77.042793]; // Default to Lima, Peru
-        mapa = L.map('mapa').setView(initialCoords, 15);
-        
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap'
-        }).addTo(mapa);
-
-        mapaMarker = L.marker(initialCoords, { draggable: isInteractive }).addTo(mapa);
-        if (!isInteractive) {
-             mapaMarker.bindPopup(`<b>Entrega para:</b><br>${title.replace('Ubicación para: ','')}`).openPopup();
-        }
-    }, 100);
-}
-window.abrirModalMapa = abrirModalMapa;
-
-function confirmarUbicacionDesdeMapa() {
-    if (onMapaConfirmCallback && mapaMarker) {
-        const { lat, lng } = mapaMarker.getLatLng();
-        onMapaConfirmCallback(lat, lng);
-    }
-}
-window.confirmarUbicacionDesdeMapa = confirmarUbicacionDesdeMapa;
-
-function cerrarModalMapa() {
-    document.getElementById('mapModal').classList.remove('show');
-    if (mapa) {
-        mapa.remove();
-        mapa = null;
-        mapaMarker = null;
-        onMapaConfirmCallback = null;
-    }
-}
-window.cerrarModalMapa = cerrarModalMapa;
-
 
 // --- ADMIN: Productos y Categorías ---
 async function cargarProductosAdmin() {
@@ -1796,10 +1667,13 @@ async function importarProductos(event) {
                     }).filter(Boolean);
                 }
             } else { // Handle .xls, .xlsx
-                const workbook = XLSX.read(fileContent, { type: 'array' });
-                const sheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[sheetName];
-                productosImportados = XLSX.utils.sheet_to_json(worksheet);
+                // FIX: Check if fileContent is an ArrayBuffer
+                if (fileContent instanceof ArrayBuffer) {
+                    const workbook = XLSX.read(new Uint8Array(fileContent), { type: 'array' });
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    productosImportados = XLSX.utils.sheet_to_json(worksheet);
+                }
             }
 
             if (productosImportados.length === 0) {
@@ -1894,10 +1768,13 @@ async function importarStock(event) {
                     }).filter(Boolean);
                 }
             } else {
-                const workbook = XLSX.read(fileContent, { type: 'array', cellDates: true });
-                const sheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[sheetName];
-                stockItems = XLSX.utils.sheet_to_json(worksheet);
+                // FIX: Check if fileContent is an ArrayBuffer
+                if (fileContent instanceof ArrayBuffer) {
+                    const workbook = XLSX.read(new Uint8Array(fileContent), { type: 'array', cellDates: true });
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    stockItems = XLSX.utils.sheet_to_json(worksheet);
+                }
             }
 
             if (!stockItems || stockItems.length === 0) throw new Error('No se encontraron items de stock en el archivo.');
@@ -2290,7 +2167,6 @@ window.onclick = function(event) {
     if (event.target == document.getElementById('productoModal')) cerrarModalProducto();
     if (event.target == document.getElementById('categoriaModal')) cerrarModalCategoria();
     if (event.target == document.getElementById('pedidoModal')) cerrarModalPedido();
-    if (event.target == document.getElementById('mapModal')) cerrarModalMapa();
     if (event.target == document.getElementById('detalleProductoModal')) cerrarModalDetalleProducto();
     if (event.target == document.getElementById('ingresoStockModal')) cerrarModalIngresoStock();
 }

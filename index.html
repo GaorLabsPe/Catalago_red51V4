@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Red51 Technology - Tienda Online</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <style>
         * {
             margin: 0;
@@ -921,12 +920,6 @@
         .status-select.entregado { background-color: var(--success); }
         .status-select.cancelado { background-color: var(--danger); }
 
-        #mapa {
-            height: 450px;
-            width: 100%;
-            border-radius: 12px;
-        }
-
         .pedidos-table tr.row-updated {
             animation: highlight-row 3s ease-out;
         }
@@ -1290,7 +1283,6 @@
                                         <th>Cliente</th>
                                         <th>Total</th>
                                         <th>Estado</th>
-                                        <th>Ubicación</th>
                                     </tr>
                                 </thead>
                                 <tbody id="adminPedidosTable"></tbody>
@@ -1905,21 +1897,6 @@ NOTIFY pgrst_reload_schema;
             </div>
         </div>
     </div>
-
-    <div id="mapModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="mapModalTitle">Ubicación de Entrega</h2>
-                <button class="close-btn" onclick="cerrarModalMapa()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div id="mapa"></div>
-                <div id="mapaActions" style="text-align: right; margin-top: 1rem; display: none;">
-                    <button class="btn-primary" onclick="confirmarUbicacionDesdeMapa()">Confirmar Ubicación</button>
-                </div>
-            </div>
-        </div>
-    </div>
     
     <div id="ingresoStockModal" class="modal">
         <div class="modal-content ingreso-stock-modal-content">
@@ -1963,7 +1940,6 @@ NOTIFY pgrst_reload_schema;
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script type="module" src="./index.tsx"></script>
 </body>
