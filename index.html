@@ -739,35 +739,31 @@
             transform: translateY(-2px);
         }
         
-        .products-table, .categories-table, .pedidos-table, .reportes-table {
+        .admin-table {
             width: 100%;
             border-collapse: collapse;
         }
         
-        .products-table th, .products-table td,
-        .categories-table th, .categories-table td,
-        .pedidos-table th, .pedidos-table td,
-        .reportes-table th, .reportes-table td {
+        .admin-table th, .admin-table td {
             padding: 1rem;
             text-align: left;
             border-bottom: 1px solid var(--border-color);
         }
         
-        .products-table th, .categories-table th, .pedidos-table th, .reportes-table th {
+        .admin-table th {
             background: var(--light);
             font-weight: 700;
             color: var(--primary);
         }
         
-        .products-table tr:hover, .categories-table tr:hover {
+        .admin-table tbody tr:hover {
             background: #f9fafb;
-        }
-
-        .pedidos-table tr:hover {
-            background: #f9fafb;
-            cursor: pointer;
         }
         
+        .admin-table tbody tr.clickable:hover {
+            cursor: pointer;
+        }
+
         .table-actions {
             display: flex;
             gap: 0.5rem;
@@ -1097,7 +1093,7 @@
             transform: scale(1.1);
         }
 
-        .lote-modal-content {
+        .ingreso-stock-modal-content {
             max-width: 700px;
         }
 
@@ -1124,7 +1120,16 @@
             color: var(--warning);
             font-weight: 700;
         }
-
+        
+        .movimiento-tipo {
+            font-weight: 600;
+        }
+        .movimiento-tipo.ingreso {
+            color: var(--success);
+        }
+        .movimiento-tipo.salida {
+            color: var(--danger);
+        }
 
         @keyframes highlight-row {
             0% { background-color: #bfdbfe; }
@@ -1163,7 +1168,7 @@
                 font-size: 1.2rem;
             }
             
-            .products-table, .categories-table, .pedidos-table, .reportes-table {
+            .admin-table {
                 font-size: 0.85rem;
             }
         }
@@ -1245,9 +1250,10 @@
 
                 <div class="admin-nav">
                     <button class="admin-nav-btn active" id="navBtnPedidos" onclick="mostrarVistaAdmin('pedidos')">Pedidos</button>
+                    <button class="admin-nav-btn" id="navBtnReportes" onclick="mostrarVistaAdmin('reportes')">Reportes</button>
+                    <button class="admin-nav-btn" id="navBtnInventario" onclick="mostrarVistaAdmin('inventario')">Inventario</button>
                     <button class="admin-nav-btn" id="navBtnProductos" onclick="navegarAProductos()">Productos</button>
                     <button class="admin-nav-btn" id="navBtnCategorias" onclick="mostrarVistaAdmin('categorias')">Categorías</button>
-                    <button class="admin-nav-btn" id="navBtnReportes" onclick="mostrarVistaAdmin('reportes')">Reportes</button>
                     <button class="admin-nav-btn" id="navBtnConfig" onclick="mostrarVistaAdmin('config')">Configuración</button>
                     <button class="admin-nav-btn" id="navBtnAyuda" onclick="mostrarVistaAdmin('ayuda')">Ayuda</button>
                 </div>
@@ -1255,7 +1261,7 @@
                 <div id="pedidosView" class="admin-view-content">
                     <div class="kpi-container">
                         <div class="kpi-card">
-                            <div class="kpi-card-title">Ingresos Totales</div>
+                            <div class="kpi-card-title">Ingresos Totales (Filtrados)</div>
                             <div class="kpi-card-value" id="kpiIngresos">S/ 0.00</div>
                         </div>
                         <div class="kpi-card">
@@ -1266,7 +1272,7 @@
                             <div class="kpi-card-title">Pedidos Pendientes</div>
                             <div class="kpi-card-value" id="kpiPendientes">0</div>
                         </div>
-                        <div class="kpi-card" id="kpiBajosStock" onclick="verProductosBajosStock()" style="cursor: pointer; border-left: 4px solid var(--warning);">
+                        <div class="kpi-card" id="kpiBajosStockPedidos" onclick="verProductosBajosStock()" style="cursor: pointer; border-left: 4px solid var(--warning);">
                             <div class="kpi-card-title">Productos Bajos de Stock</div>
                             <div class="kpi-card-value">0</div>
                         </div>
@@ -1277,7 +1283,7 @@
                         </div>
                         <div id="pedidosFilterContainer" class="category-filter"></div>
                         <div style="overflow-x: auto;">
-                            <table class="pedidos-table">
+                            <table class="admin-table pedidos-table">
                                 <thead>
                                     <tr>
                                         <th>N° Pedido</th>
@@ -1294,10 +1300,78 @@
                     </div>
                 </div>
 
+                <div id="inventarioView" class="admin-view-content" style="display:none;">
+                    <div id="inventarioDashboard">
+                        <div class="kpi-container">
+                            <div class="kpi-card" style="border-left: 4px solid var(--primary);">
+                                <div class="kpi-card-title">Valor Total del Inventario</div>
+                                <div class="kpi-card-value" id="kpiValorInventario">S/ 0.00</div>
+                            </div>
+                            <div class="kpi-card">
+                                <div class="kpi-card-title">Unidades Totales en Stock</div>
+                                <div class="kpi-card-value" id="kpiUnidadesTotales">0</div>
+                            </div>
+                            <div class="kpi-card" style="border-left: 4px solid var(--warning);">
+                                <div class="kpi-card-title">Productos Bajos de Stock</div>
+                                <div class="kpi-card-value" id="kpiBajosStockInventario">0</div>
+                            </div>
+                            <div class="kpi-card" style="border-left: 4px solid var(--danger);">
+                                <div class="kpi-card-title">Productos Sin Stock</div>
+                                <div class="kpi-card-value" id="kpiSinStock">0</div>
+                            </div>
+                        </div>
+                        <div class="admin-section">
+                            <div class="admin-header">
+                                <h2>Estado del Inventario</h2>
+                                <input type="text" id="inventorySearchInput" placeholder="Buscar producto..." oninput="renderizarInventario()" class="form-group" style="margin: 0; max-width: 400px; width: 100%;">
+                            </div>
+                            <div style="overflow-x: auto;">
+                                <table class="admin-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Producto</th>
+                                            <th>Stock Total</th>
+                                            <th>Valor de Inventario (Costo)</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="inventarioTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="movimientosView" style="display:none;">
+                        <div class="admin-header">
+                            <div>
+                                <button class="btn-secondary" onclick="mostrarVistaAdmin('inventario')">← Volver al Inventario</button>
+                                <h2 id="movimientosTitle" style="margin-top: 1rem;"></h2>
+                            </div>
+                        </div>
+                        <div class="admin-section">
+                            <div style="overflow-x: auto;">
+                                <table class="admin-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Fecha</th>
+                                            <th>Tipo</th>
+                                            <th>Cantidad</th>
+                                            <th>Stock Resultante</th>
+                                            <th>Usuario</th>
+                                            <th>Referencia (Pedido/Factura)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="movimientosTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div id="productosView" class="admin-view-content" style="display:none;">
                     <div class="admin-section">
                         <div class="admin-header">
-                            <h2>Gestion de Productos</h2>
+                            <h2>Catálogo de Productos</h2>
                             <div class="admin-search-container">
                                 <input type="text" id="productSearchInput" placeholder="Buscar por nombre o marca..." oninput="renderizarProductosAdmin()">
                                 <button id="clearProductFilterBtn" class="btn-secondary" style="display: none;" onclick="limpiarFiltroProductos()">Limpiar</button>
@@ -1311,14 +1385,13 @@
                         </div>
                         <h3 id="productFilterTitle" class="section-title" style="font-size: 1.2rem; text-align: left; margin-bottom: 1rem; display: none;"></h3>
                         <div style="overflow-x: auto;">
-                            <table class="products-table">
+                            <table class="admin-table products-table">
                                 <thead>
                                     <tr>
                                         <th>Imagen</th>
                                         <th>Nombre</th>
                                         <th>Categoria</th>
-                                        <th>Precio</th>
-                                        <th>Stock Total</th>
+                                        <th>Precio Venta</th>
                                         <th>Variantes</th>
                                         <th>Estado</th>
                                         <th>Acciones</th>
@@ -1337,7 +1410,7 @@
                             <button class="btn-secondary" onclick="abrirModalCategoria()">+ Agregar Categoría</button>
                         </div>
                          <div style="overflow-x: auto;">
-                            <table class="categories-table">
+                            <table class="admin-table categories-table">
                                 <thead>
                                     <tr>
                                         <th>Nombre</th>
@@ -1393,7 +1466,7 @@
 
                     <div class="admin-section">
                         <div style="overflow-x: auto;">
-                            <table class="reportes-table">
+                            <table class="admin-table reportes-table">
                                 <thead>
                                     <tr>
                                         <th>N° Pedido</th>
@@ -1440,29 +1513,25 @@
                         <ol>
                             <li><strong>Crea tus Categorías:</strong> Ve a la pestaña <strong>"Categorías"</strong> y añade las secciones para tus productos (ej: Laptops, Accesorios, Smartphones).</li>
                             <li><strong>Añade tus Productos:</strong> En la pestaña <strong>"Productos"</strong>, haz clic en "+ Agregar Producto" para definir sus detalles (nombre, precio, etc.).</li>
-                            <li><strong>Gestiona el Inventario (¡Nuevo!):</strong> En la lista de productos, haz clic en <strong>"Gestionar Lotes"</strong> para añadir tu inventario inicial, incluyendo número de lote y fecha de vencimiento. El stock total se calculará automáticamente.</li>
+                            <li><strong>Gestiona el Inventario (¡Nuevo!):</strong> Ve al nuevo módulo de <strong>"Inventario"</strong>. Desde allí, puedes registrar nuevos ingresos de stock para cada producto, incluyendo número de lote, fecha de vencimiento, y ahora, el N° de factura/comprobante y el proveedor para una trazabilidad completa.</li>
                             <li><strong>Analiza tus Ventas:</strong> En la pestaña <strong>"Reportes"</strong>, selecciona un rango de fechas para ver tus ingresos, costos y ganancias.</li>
-                            <li><strong>Gestiona tus Pedidos:</strong> Cuando recibas una venta, aparecerá en la pestaña <strong>"Pedidos"</strong>. Al cambiar el estado a "Pago Confirmado" o "En Preparación", el stock se descontará automáticamente siguiendo la estrategia FEFO (el lote más próximo a vencer se vende primero).</li>
+                            <li><strong>Gestiona tus Pedidos:</strong> Cuando recibas una venta, aparecerá en la pestaña <strong>"Pedidos"</strong>. Al cambiar el estado a "Pago Confirmado" o "En Preparación", el stock se descontará automáticamente siguiendo la estrategia FEFO y se creará un registro de auditoría en el historial de movimientos del producto.</li>
                         </ol>
                     </div>
                     <div class="help-card">
                         <h3>🤔 Preguntas Frecuentes (FAQ)</h3>
                         <ul>
                             <li>
-                                <strong>¿Cómo funciona el nuevo sistema de inventario por lotes?</strong>
-                                <p>El sistema ahora te permite un control total sobre productos perecederos. En lugar de un único campo de "stock", ahora gestionas el inventario a través de "lotes" para cada producto. Cada lote tiene su propia cantidad, número de lote y fecha de vencimiento. Esto permite que el sistema aplique la estrategia <strong>FEFO (First-Expired, First-Out)</strong>: cuando un cliente compra un producto, el sistema automáticamente descuenta las unidades del lote que está más próximo a caducar, ayudándote a minimizar pérdidas.</p>
+                                <strong>¿Qué es el nuevo Módulo de Inventario?</strong>
+                                <p>Es un centro de control dedicado para todo lo relacionado con tu stock. Te permite ver el valor total de tu inventario, cuántas unidades tienes, y lo más importante: un <strong>historial de movimientos de auditoría</strong> para cada producto. Ahora puedes rastrear cada unidad desde que ingresa con una factura de compra hasta que sale en un pedido de venta.</p>
                             </li>
                              <li>
-                                <strong>¿Por qué el campo "Stock" en el formulario del producto está bloqueado?</strong>
-                                <p>El stock total de un producto ahora es la <strong>suma automática de las cantidades de todos sus lotes activos</strong>. Ya no necesitas (ni puedes) editarlo manualmente. Para añadir o quitar inventario, debes ir a la lista de productos y usar el botón <strong>"Gestionar Lotes"</strong> para añadir un nuevo lote de compra o eliminar uno existente.</p>
+                                <strong>¿Cómo añado stock ahora?</strong>
+                                <p>Ve al módulo <strong>"Inventario"</strong>, busca el producto en la lista y haz clic en el botón <strong>"Registrar Ingreso"</strong>. Esto abrirá un formulario donde puedes añadir uno o más lotes de una sola vez, junto con la información de la compra (factura, proveedor), para mantener un registro claro.</p>
                             </li>
                             <li>
-                                <strong>¿Para qué sirve el "Precio de Costo"?</strong>
-                                <p>Es un campo <strong>privado</strong> que te permite registrar cuánto te costó un producto. El sistema lo usa en la sección de <strong>"Reportes"</strong> para calcular automáticamente tu ganancia bruta y tu margen de ganancia por cada venta, ayudándote a entender la rentabilidad real de tu negocio.</p>
-                            </li>
-                             <li>
-                                <strong>¿Cómo funciona el descuento de stock con la lógica FEFO?</strong>
-                                <p>Cuando cambias el estado de un pedido a <strong>"Pago Confirmado"</strong> o <strong>"En Preparación"</strong>, el sistema busca todos los lotes del producto solicitado y los ordena por fecha de vencimiento (del más antiguo al más nuevo). Luego, descuenta la cantidad necesaria del primer lote. Si ese lote no es suficiente, lo agota y continúa con el siguiente, y así sucesivamente. Todo es automático y seguro para tu inventario.</p>
+                                <strong>¿Para qué sirve el Historial de Movimientos?</strong>
+                                <p>Es tu registro de auditoría. Te permite responder preguntas como: "¿Quién ingresó este lote?", "¿Con qué factura se compró?", "¿En qué pedido se vendió esta unidad?". Esto te da un control total y visibilidad sobre tu inventario, ayudándote a prevenir pérdidas y a gestionar tu negocio de forma más profesional.</p>
                             </li>
                         </ul>
                     </div>
@@ -1478,12 +1547,14 @@
                                     </p>
                                     <div class="sql-code" style="max-height: 400px; overflow-y: auto; margin-top: 1.5rem; text-align: left;">
 <pre>
--- ========= SCRIPT DE CONFIGURACIÓN Y SINCRONIZACIÓN v10 (Inventario FEFO por Lotes) =========
+-- ========= SCRIPT DE CONFIGURACIÓN Y SINCRONIZACIÓN v11 (Auditoría de Inventario) =========
 CREATE TABLE IF NOT EXISTS public.categorias (id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY, nombre text NOT NULL, slug text NOT NULL UNIQUE, created_at timestamptz DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.productos (id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY, nombre text NOT NULL, precio numeric NOT NULL DEFAULT 0, created_at timestamptz DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.pedidos (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), numero_pedido serial NOT NULL, fecha_pedido timestamptz DEFAULT now(), nombre_cliente text, telefono_cliente text, email_cliente text, direccion text, productos jsonb, total numeric, cantidad_items integer, estado text, latitud double precision, longitud double precision);
 CREATE TABLE IF NOT EXISTS public.configuracion (clave text PRIMARY KEY, valor text, updated_at timestamptz DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.lotes_inventario (id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY, producto_id bigint NOT NULL, numero_lote text, fecha_vencimiento date, cantidad integer NOT NULL DEFAULT 0, created_at timestamptz DEFAULT now(), CONSTRAINT lotes_inventario_producto_id_fkey FOREIGN KEY (producto_id) REFERENCES public.productos(id) ON DELETE CASCADE);
+CREATE TYPE public.tipo_movimiento_enum AS ENUM ('INGRESO_COMPRA', 'SALIDA_VENTA', 'AJUSTE_MANUAL');
+CREATE TABLE IF NOT EXISTS public.movimientos_inventario (id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY, producto_id bigint NOT NULL, lote_id bigint, tipo_movimiento tipo_movimiento_enum NOT NULL, cantidad integer NOT NULL, stock_resultante integer NOT NULL, fecha_movimiento timestamptz DEFAULT now(), usuario_email text, referencia_id text, proveedor text, CONSTRAINT movimientos_inventario_producto_id_fkey FOREIGN KEY (producto_id) REFERENCES public.productos(id) ON DELETE CASCADE, CONSTRAINT movimientos_inventario_lote_id_fkey FOREIGN KEY (lote_id) REFERENCES public.lotes_inventario(id) ON DELETE SET NULL);
 
 -- Sincronización de la tabla 'productos'
 ALTER TABLE public.productos DROP COLUMN IF EXISTS categoria;
@@ -1495,7 +1566,7 @@ ALTER TABLE public.productos ADD CONSTRAINT productos_categoria_id_fkey FOREIGN 
 ALTER TABLE public.pedidos ADD COLUMN IF NOT EXISTS stock_descontado boolean DEFAULT false NOT NULL;
 
 -- Políticas de Seguridad (RLS)
-ALTER TABLE public.categorias ENABLE ROW LEVEL SECURITY; ALTER TABLE public.productos ENABLE ROW LEVEL SECURITY; ALTER TABLE public.pedidos ENABLE ROW LEVEL SECURITY; ALTER TABLE public.configuracion ENABLE ROW LEVEL SECURITY; ALTER TABLE public.lotes_inventario ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.categorias ENABLE ROW LEVEL SECURITY; ALTER TABLE public.productos ENABLE ROW LEVEL SECURITY; ALTER TABLE public.pedidos ENABLE ROW LEVEL SECURITY; ALTER TABLE public.configuracion ENABLE ROW LEVEL SECURITY; ALTER TABLE public.lotes_inventario ENABLE ROW LEVEL SECURITY; ALTER TABLE public.movimientos_inventario ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public read access" ON public.categorias; CREATE POLICY "Public read access" ON public.categorias FOR SELECT USING (true);
 DROP POLICY IF EXISTS "Public read access" ON public.productos; CREATE POLICY "Public read access" ON public.productos FOR SELECT USING (true);
 DROP POLICY IF EXISTS "Public read access" ON public.configuracion; CREATE POLICY "Public read access" ON public.configuracion FOR SELECT USING (true);
@@ -1505,76 +1576,66 @@ DROP POLICY IF EXISTS "Allow full access for authenticated users" ON public.prod
 DROP POLICY IF EXISTS "Allow full access for authenticated users" ON public.pedidos; CREATE POLICY "Allow full access for authenticated users" ON public.pedidos FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 DROP POLICY IF EXISTS "Allow full access for authenticated users" ON public.configuracion; CREATE POLICY "Allow full access for authenticated users" ON public.configuracion FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 DROP POLICY IF EXISTS "Allow full access for authenticated users" ON public.lotes_inventario; CREATE POLICY "Allow full access for authenticated users" ON public.lotes_inventario FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Allow full access for authenticated users" ON public.movimientos_inventario; CREATE POLICY "Allow full access for authenticated users" ON public.movimientos_inventario FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 
--- FUNCIÓN PARA ACTUALIZAR EL STOCK TOTAL DE UN PRODUCTO (basado en lotes)
-CREATE OR REPLACE FUNCTION public.actualizar_stock_producto(id_producto bigint)
-RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-    stock_total integer;
+-- FUNCIÓN PARA ACTUALIZAR EL STOCK TOTAL DE UN PRODUCTO
+CREATE OR REPLACE FUNCTION public.actualizar_stock_producto(id_producto bigint) RETURNS integer LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE stock_total integer;
 BEGIN
-    SELECT COALESCE(SUM(cantidad), 0) INTO stock_total
-    FROM public.lotes_inventario
-    WHERE producto_id = id_producto AND (fecha_vencimiento IS NULL OR fecha_vencimiento >= CURRENT_DATE);
-
+    SELECT COALESCE(SUM(cantidad), 0) INTO stock_total FROM public.lotes_inventario WHERE producto_id = id_producto AND (fecha_vencimiento IS NULL OR fecha_vencimiento >= CURRENT_DATE);
     UPDATE public.productos SET stock = stock_total WHERE id = id_producto;
-END;
-$$;
+    RETURN stock_total;
+END; $$;
 GRANT EXECUTE ON FUNCTION public.actualizar_stock_producto(bigint) TO authenticated;
 
--- FUNCIÓN PARA DESCONTAR STOCK (Transaccional y con lógica FEFO)
-CREATE OR REPLACE FUNCTION public.descontar_stock_pedido(id_pedido uuid)
-RETURNS text
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-    producto_rec record;
-    lote_rec record;
-    cantidad_a_descontar integer;
-    stock_total_producto integer;
+-- FUNCIÓN PARA REGISTRAR INGRESO DE STOCK (con auditoría)
+CREATE OR REPLACE FUNCTION public.registrar_ingreso_stock(id_producto bigint, lotes jsonb, comprobante text, prov text) RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE lote_data jsonb; nuevo_lote_id bigint; stock_actualizado integer;
 BEGIN
-    IF (SELECT stock_descontado FROM public.pedidos WHERE id = id_pedido) THEN
-        RETURN 'El stock para este pedido ya fue descontado previamente.';
-    END IF;
+    FOR lote_data IN SELECT * FROM jsonb_array_elements(lotes) LOOP
+        INSERT INTO public.lotes_inventario (producto_id, numero_lote, fecha_vencimiento, cantidad)
+        VALUES (id_producto, lote_data->>'numero_lote', (lote_data->>'fecha_vencimiento')::date, (lote_data->>'cantidad')::integer)
+        RETURNING id INTO nuevo_lote_id;
 
-    -- Validar stock total ANTES de descontar
+        SELECT public.actualizar_stock_producto(id_producto) INTO stock_actualizado;
+
+        INSERT INTO public.movimientos_inventario (producto_id, lote_id, tipo_movimiento, cantidad, stock_resultante, usuario_email, referencia_id, proveedor)
+        VALUES (id_producto, nuevo_lote_id, 'INGRESO_COMPRA', (lote_data->>'cantidad')::integer, stock_actualizado, auth.email(), comprobante, prov);
+    END LOOP;
+END; $$;
+GRANT EXECUTE ON FUNCTION public.registrar_ingreso_stock(bigint, jsonb, text, text) TO authenticated;
+
+-- FUNCIÓN PARA DESCONTAR STOCK (Transaccional, FEFO y con auditoría)
+CREATE OR REPLACE FUNCTION public.descontar_stock_pedido(id_pedido uuid) RETURNS text LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE producto_rec record; lote_rec record; cantidad_a_descontar integer; stock_total_producto integer; stock_actualizado integer; pedido_numero integer;
+BEGIN
+    IF (SELECT stock_descontado FROM public.pedidos WHERE id = id_pedido) THEN RETURN 'El stock para este pedido ya fue descontado previamente.'; END IF;
+    SELECT numero_pedido INTO pedido_numero FROM public.pedidos WHERE id = id_pedido;
     FOR producto_rec IN SELECT (p->>'id')::bigint AS producto_id, (p->>'cantidad')::integer AS cantidad, (p->>'producto')::text AS nombre_producto FROM public.pedidos, jsonb_array_elements(productos) AS p WHERE id = id_pedido LOOP
         SELECT stock INTO stock_total_producto FROM public.productos WHERE id = producto_rec.producto_id;
-        IF stock_total_producto &lt; producto_rec.cantidad THEN
-            RAISE EXCEPTION 'Stock insuficiente para el producto: "%". Stock total actual: %, Requerido: %', producto_rec.nombre_producto, stock_total_producto, producto_rec.cantidad;
-        END IF;
+        IF stock_total_producto &lt; producto_rec.cantidad THEN RAISE EXCEPTION 'Stock insuficiente para el producto: "%". Stock total actual: %, Requerido: %', producto_rec.nombre_producto, stock_total_producto, producto_rec.cantidad; END IF;
     END LOOP;
-
-    -- Proceder con el descuento FEFO
     FOR producto_rec IN SELECT (p->>'id')::bigint AS producto_id, (p->>'cantidad')::integer AS cantidad FROM public.pedidos, jsonb_array_elements(productos) AS p WHERE id = id_pedido LOOP
         cantidad_a_descontar := producto_rec.cantidad;
         FOR lote_rec IN SELECT * FROM public.lotes_inventario WHERE producto_id = producto_rec.producto_id AND cantidad > 0 AND (fecha_vencimiento IS NULL OR fecha_vencimiento >= CURRENT_DATE) ORDER BY fecha_vencimiento ASC NULLS LAST LOOP
             IF cantidad_a_descontar = 0 THEN EXIT; END IF;
             IF lote_rec.cantidad >= cantidad_a_descontar THEN
                 UPDATE public.lotes_inventario SET cantidad = cantidad - cantidad_a_descontar WHERE id = lote_rec.id;
+                SELECT public.actualizar_stock_producto(producto_rec.producto_id) INTO stock_actualizado;
+                INSERT INTO public.movimientos_inventario (producto_id, lote_id, tipo_movimiento, cantidad, stock_resultante, usuario_email, referencia_id) VALUES (producto_rec.producto_id, lote_rec.id, 'SALIDA_VENTA', cantidad_a_descontar * -1, stock_actualizado, auth.email(), 'Pedido #' || pedido_numero);
                 cantidad_a_descontar := 0;
             ELSE
+                INSERT INTO public.movimientos_inventario (producto_id, lote_id, tipo_movimiento, cantidad, stock_resultante, usuario_email, referencia_id) VALUES (producto_rec.producto_id, lote_rec.id, 'SALIDA_VENTA', lote_rec.cantidad * -1, (SELECT stock FROM public.productos WHERE id = producto_rec.producto_id) - lote_rec.cantidad, auth.email(), 'Pedido #' || pedido_numero);
                 cantidad_a_descontar := cantidad_a_descontar - lote_rec.cantidad;
                 UPDATE public.lotes_inventario SET cantidad = 0 WHERE id = lote_rec.id;
             END IF;
         END LOOP;
-        
-        -- Si después de recorrer los lotes aún falta descontar, es un error de concurrencia.
-        IF cantidad_a_descontar > 0 THEN
-             RAISE EXCEPTION 'Error de concurrencia o stock inconsistente al procesar el producto ID %.', producto_rec.producto_id;
-        END IF;
-
-        -- Actualizar el stock total cacheado en la tabla de productos
+        IF cantidad_a_descontar > 0 THEN RAISE EXCEPTION 'Error de concurrencia o stock inconsistente al procesar el producto ID %.', producto_rec.producto_id; END IF;
         PERFORM public.actualizar_stock_producto(producto_rec.producto_id);
     END LOOP;
-
     UPDATE public.pedidos SET stock_descontado = true WHERE id = id_pedido;
-    RETURN 'Stock descontado exitosamente con estrategia FEFO.';
-END;
-$$;
+    RETURN 'Stock descontado exitosamente con estrategia FEFO y auditoría registrada.';
+END; $$;
 GRANT EXECUTE ON FUNCTION public.descontar_stock_pedido(uuid) TO authenticated;
 
 NOTIFY pgrst_reload_schema;
@@ -1637,20 +1698,15 @@ NOTIFY pgrst_reload_schema;
                         <label>Descripcion</label>
                         <textarea id="productoDescripcion" required></textarea>
                     </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                         <div class="form-group">
                             <label>Precio de Costo (S/)</label>
                             <input type="number" id="productoCosto" step="0.01" min="0" required value="0">
-                            <div class="form-hint">No es visible para el cliente. Usado para calcular ganancias.</div>
+                            <div class="form-hint">No es visible para el cliente. Usado para calcular ganancias y valor de inventario.</div>
                         </div>
                         <div class="form-group">
                             <label>Precio de Venta (S/)</label>
                             <input type="number" id="productoPrecio" step="0.01" min="0" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Stock Total</label>
-                            <input type="number" id="productoStock" readonly style="background: #e9ecef; cursor: not-allowed;" value="0">
-                            <div class="form-hint">Calculado de los lotes. Usa "Gestionar Lotes".</div>
                         </div>
                     </div>
                     <div class="form-group">
@@ -1675,7 +1731,7 @@ NOTIFY pgrst_reload_schema;
                             <label style="margin: 0;">Variantes (ej: Talla, Color)</label>
                             <button type="button" class="btn-secondary" style="padding: 0.5rem 1rem;" onclick="agregarTipoVariante()">+ Agregar tipo</button>
                         </div>
-                         <div class="form-hint">Añade opciones para tu producto. Los clientes deberán elegir una de cada tipo. Haz clic en 🖼️ para asignar una imagen.</div>
+                         <div class="form-hint">Añade opciones para tu producto. Los clientes deberán elegir una de cada tipo. Haz clic en 🖼️ para asignar una imagen. El stock se gestiona desde el Módulo de Inventario.</div>
                         <div id="variantesContainer"></div>
                     </div>
                     <button type="submit" class="btn-primary" id="btnGuardarProducto" style="margin-top: 1.5rem;">Guardar Producto</button>
@@ -1753,38 +1809,38 @@ NOTIFY pgrst_reload_schema;
         </div>
     </div>
     
-    <div id="loteModal" class="modal">
-        <div class="modal-content lote-modal-content">
+    <div id="ingresoStockModal" class="modal">
+        <div class="modal-content ingreso-stock-modal-content">
             <div class="modal-header">
-                <h2 id="loteModalTitle">Gestionar Lotes de Inventario</h2>
-                <button class="close-btn" onclick="cerrarModalLotes()">&times;</button>
+                <h2 id="ingresoStockModalTitle">Registrar Ingreso de Stock</h2>
+                <button class="close-btn" onclick="cerrarModalIngresoStock()">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="admin-section" style="padding: 1rem; margin: 0; margin-bottom: 2rem;">
-                    <h4>Añadir Nuevo Lote</h4>
-                    <form id="loteForm" onsubmit="agregarLote(event)">
-                        <input type="hidden" id="loteProductoId">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; align-items: flex-end;">
+                <form id="ingresoStockForm" onsubmit="registrarIngresoStock(event)">
+                    <input type="hidden" id="ingresoProductoId">
+                    <div class="admin-section" style="padding: 1rem; margin: 0; margin-bottom: 2rem;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                             <div class="form-group" style="margin: 0;">
-                                <label>N° de Lote (Opcional)</label>
-                                <input type="text" id="loteNumero">
+                                <label>N° de Factura/Comprobante</label>
+                                <input type="text" id="ingresoComprobante" required>
                             </div>
                             <div class="form-group" style="margin: 0;">
-                                <label>Fecha de Vencimiento</label>
-                                <input type="date" id="loteFechaVencimiento">
-                            </div>
-                            <div class="form-group" style="margin: 0;">
-                                <label>Cantidad</label>
-                                <input type="number" id="loteCantidad" required min="1">
+                                <label>Proveedor (Opcional)</label>
+                                <input type="text" id="ingresoProveedor">
                             </div>
                         </div>
-                        <button type="submit" class="btn-primary" style="margin-top: 1rem; width: auto; padding: 0.75rem 2rem;">+ Añadir Lote</button>
-                    </form>
-                </div>
-                <h4>Lotes Actuales</h4>
-                <div id="lotesLista">
-                    <div class="loading">Cargando lotes...</div>
-                </div>
+                    </div>
+
+                    <h4>Lotes a Ingresar</h4>
+                    <div id="lotesParaIngresarContainer">
+                        <!-- Lotes se añaden aquí dinámicamente -->
+                    </div>
+                    <button type="button" class="btn-secondary" onclick="agregarLoteParaIngreso()" style="margin-top: 1rem;">+ Añadir otro lote</button>
+                    
+                    <hr style="margin: 2rem 0; border: none; border-top: 1px solid var(--border-color);">
+
+                    <button type="submit" class="btn-primary" style="width: 100%;">Confirmar Ingreso de Stock</button>
+                </form>
             </div>
         </div>
     </div>
@@ -1810,6 +1866,8 @@ NOTIFY pgrst_reload_schema;
         let productosAdmin = [];
         let categorias = [];
         let pedidos = [];
+        let inventario = [];
+        let movimientos = [];
         let datosReporteActual = [];
         let usuarioActual = null;
         let configuracion = {};
@@ -1923,17 +1981,28 @@ NOTIFY pgrst_reload_schema;
             cargarProductosAdmin();
             cargarCategoriasAdmin();
             cargarConfiguracionAdmin();
+            cargarInventario();
 
             mostrarVistaAdmin('pedidos');
             suscribirACambiosPedidos();
         }
 
-        function mostrarVistaAdmin(vista) {
+        function mostrarVistaAdmin(vista, subVista = null) {
             document.querySelectorAll('.admin-view-content').forEach(v => v.style.display = 'none');
             document.querySelectorAll('.admin-nav-btn').forEach(b => b.classList.remove('active'));
 
-            document.getElementById(`${vista}View`).style.display = 'block';
-            document.getElementById(`navBtn${vista.charAt(0).toUpperCase() + vista.slice(1)}`).classList.add('active');
+            const vistaPrincipal = vista.startsWith('movimientos') ? 'inventario' : vista;
+            
+            document.getElementById(`${vistaPrincipal}View`).style.display = 'block';
+            document.getElementById(`navBtn${vistaPrincipal.charAt(0).toUpperCase() + vistaPrincipal.slice(1)}`).classList.add('active');
+
+            if (vista === 'inventario') {
+                document.getElementById('inventarioDashboard').style.display = 'block';
+                document.getElementById('movimientosView').style.display = 'none';
+            } else if (vista === 'movimientos') {
+                document.getElementById('inventarioDashboard').style.display = 'none';
+                document.getElementById('movimientosView').style.display = 'block';
+            }
             
             if (vista === 'reportes') {
                 const hoy = new Date();
@@ -2536,6 +2605,8 @@ NOTIFY pgrst_reload_schema;
             document.getElementById('kpiIngresos').textContent = `S/ ${ingresosTotales.toFixed(2)}`;
             document.getElementById('kpiTotalPedidos').textContent = pedidos.length;
             document.getElementById('kpiPendientes').textContent = pedidosPendientes;
+            const bajosStock = (inventario || []).filter(p => p.stock > 0 && p.stock <= 5).length;
+            document.getElementById('kpiBajosStockPedidos').querySelector('.kpi-card-value').textContent = bajosStock;
 
             const tbody = document.getElementById('adminPedidosTable');
             if(pedidosFiltrados.length === 0) {
@@ -2658,6 +2729,7 @@ NOTIFY pgrst_reload_schema;
                 
                 await cargarProductosAdmin();
                 await cargarProductos();
+                await cargarInventario();
 
                 const modalSelect = document.getElementById('modalStatusSelect');
                 if (modalSelect) {
@@ -2763,12 +2835,6 @@ NOTIFY pgrst_reload_schema;
                     categorias: p.categorias ? { nombre: p.categorias.nombre } : null
                 }));
 
-                const bajosStock = productosAdmin.filter(p => p.stock > 0 && p.stock <= 5).length;
-                const kpiCard = document.getElementById('kpiBajosStock');
-                if (kpiCard) {
-                    kpiCard.querySelector('.kpi-card-value').textContent = bajosStock;
-                }
-
                 renderizarProductosAdmin();
             } catch (error) {
                 alert('Error al cargar productos: ' + error.message);
@@ -2807,7 +2873,7 @@ NOTIFY pgrst_reload_schema;
             }
             
             if (productosFiltrados.length === 0) {
-                 tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 2rem;">No se encontraron productos con los filtros actuales.</td></tr>`;
+                 tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 2rem;">No se encontraron productos con los filtros actuales.</td></tr>`;
                  return;
             }
 
@@ -2824,12 +2890,10 @@ NOTIFY pgrst_reload_schema;
                     <td>${p.nombre}</td>
                     <td>${p.categorias ? p.categorias.nombre : 'Sin categoría'}</td>
                     <td>S/ ${parseFloat(p.precio).toFixed(2)}</td>
-                    <td style="font-weight: 600; color: ${p.stock <= 5 ? 'var(--danger)' : 'var(--text-dark)'}">${p.stock}</td>
                     <td>${p.variantes && p.variantes.length > 0 ? `${p.variantes.length} tipo(s)` : 'No'}</td>
                     <td>${p.activo ? 'Activo' : 'Inactivo'}</td>
                     <td class="table-actions">
                         <button class="btn-edit" onclick="editarProducto(${p.id}, event)">Editar</button>
-                        <button class="btn-lotes" onclick="abrirModalLotes(${p.id}, event)">Gestionar Lotes</button>
                         <button class="btn-danger" onclick="eliminarProducto(${p.id}, event)">Eliminar</button>
                     </td>
                 </tr>`
@@ -2982,7 +3046,6 @@ NOTIFY pgrst_reload_schema;
             document.getElementById('productoActivo').checked = true;
             document.getElementById('variantesContainer').innerHTML = '';
             document.getElementById('variantImageFile').value = '';
-            document.getElementById('productoStock').value = '0';
             llenarSelectorCategoriasProducto();
             
             const saveBtn = document.getElementById('btnGuardarProducto');
@@ -3014,7 +3077,6 @@ NOTIFY pgrst_reload_schema;
                 document.getElementById('productoDescripcion').value = data.descripcion;
                 document.getElementById('productoPrecio').value = data.precio;
                 document.getElementById('productoCosto').value = data.precio_costo || 0;
-                document.getElementById('productoStock').value = data.stock;
                 document.getElementById('productoIcon').value = data.icon || '';
                 document.getElementById('productoBadge').value = data.badge || '';
                 document.getElementById('productoActivo').checked = data.activo;
@@ -3172,6 +3234,7 @@ NOTIFY pgrst_reload_schema;
                 cerrarModalProducto();
                 await cargarProductosAdmin();
                 await cargarProductos();
+                await cargarInventario();
             } catch (error) {
                 let friendlyMessage = 'Error al guardar producto: ' + error.message;
                 const lowerCaseError = error.message.toLowerCase();
@@ -3187,135 +3250,176 @@ NOTIFY pgrst_reload_schema;
 
         async function eliminarProducto(id, event) {
             event.stopPropagation();
-            if (!confirm('¿Estás seguro de eliminar este producto? Esta acción también eliminará todos sus lotes de inventario asociados.')) return;
+            if (!confirm('¿Estás seguro de eliminar este producto? Esta acción también eliminará todos sus lotes de inventario y movimientos asociados.')) return;
             try {
                 const { error } = await supabaseClient.from('productos').delete().eq('id', id);
                 if (error) throw error;
                 mostrarNotificacion('🗑️ Producto eliminado exitosamente');
                 await cargarProductosAdmin();
                 await cargarProductos();
+                await cargarInventario();
             } catch (error) {
                 alert('Error al eliminar producto: ' + error.message);
             }
         }
         
-        // --- ADMIN: Lotes de Inventario (FEFO) ---
-        async function abrirModalLotes(productoId, event) {
-            event.stopPropagation();
-            const producto = productosAdmin.find(p => p.id === productoId);
-            if (!producto) return;
-
-            document.getElementById('loteModalTitle').textContent = `Gestionar Lotes de "${producto.nombre}"`;
-            document.getElementById('loteProductoId').value = productoId;
-            document.getElementById('loteForm').reset();
-            document.getElementById('loteModal').classList.add('show');
-            
-            await renderizarLotes(productoId);
-        }
-
-        function cerrarModalLotes() {
-            document.getElementById('loteModal').classList.remove('show');
-        }
-        
-        async function renderizarLotes(productoId) {
-            const listaContainer = document.getElementById('lotesLista');
-            listaContainer.innerHTML = '<div class="loading">Cargando lotes...</div>';
-
+        // --- ADMIN: Inventario y Movimientos ---
+        async function cargarInventario() {
+            if (!supabaseClient) return;
             try {
-                const { data: lotes, error } = await supabaseClient
-                    .from('lotes_inventario')
+                const { data, error } = await supabaseClient.from('productos').select('id, nombre, stock, precio_costo').order('nombre');
+                if (error) throw error;
+                inventario = data || [];
+                renderizarInventario();
+                calcularKPIsInventario();
+            } catch (error) {
+                console.error("Error al cargar inventario:", error.message);
+            }
+        }
+
+        function calcularKPIsInventario() {
+            const valorTotal = inventario.reduce((sum, p) => sum + (p.stock * (p.precio_costo || 0)), 0);
+            const unidadesTotales = inventario.reduce((sum, p) => sum + p.stock, 0);
+            const bajosStock = inventario.filter(p => p.stock > 0 && p.stock <= 5).length;
+            const sinStock = inventario.filter(p => p.stock === 0).length;
+
+            document.getElementById('kpiValorInventario').textContent = `S/ ${valorTotal.toFixed(2)}`;
+            document.getElementById('kpiUnidadesTotales').textContent = unidadesTotales;
+            document.getElementById('kpiBajosStockInventario').textContent = bajosStock;
+            document.getElementById('kpiSinStock').textContent = sinStock;
+        }
+
+        function renderizarInventario() {
+            const tbody = document.getElementById('inventarioTableBody');
+            const searchTerm = document.getElementById('inventorySearchInput').value.toLowerCase();
+            const productosFiltrados = inventario.filter(p => p.nombre.toLowerCase().includes(searchTerm));
+
+            if (productosFiltrados.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 2rem;">No se encontraron productos.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = productosFiltrados.map(p => `
+                <tr class="clickable" onclick="verMovimientos(${p.id}, '${p.nombre.replace(/'/g, "\\'")}')">
+                    <td>${p.nombre}</td>
+                    <td style="font-weight: 600; color: ${p.stock <= 5 ? (p.stock === 0 ? 'var(--danger)' : 'var(--warning)') : 'var(--text-dark)'};">${p.stock}</td>
+                    <td>S/ ${(p.stock * (p.precio_costo || 0)).toFixed(2)}</td>
+                    <td class="table-actions" onclick="event.stopPropagation();">
+                        <button class="btn-lotes" onclick="abrirModalIngresoStock(${p.id}, event)">+ Registrar Ingreso</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function verMovimientos(productoId, nombreProducto) {
+            mostrarVistaAdmin('movimientos');
+            document.getElementById('movimientosTitle').textContent = `Historial de Movimientos para: ${nombreProducto}`;
+            const tbody = document.getElementById('movimientosTableBody');
+            tbody.innerHTML = '<tr><td colspan="6" class="loading">Cargando historial...</td></tr>';
+            try {
+                const { data, error } = await supabaseClient
+                    .from('movimientos_inventario')
                     .select('*')
                     .eq('producto_id', productoId)
-                    .order('fecha_vencimiento', { ascending: true, nullsLast: true });
+                    .order('fecha_movimiento', { ascending: false });
 
                 if (error) throw error;
-                
-                if (lotes.length === 0) {
-                    listaContainer.innerHTML = '<div class="empty-cart" style="padding: 1rem 0;">No hay lotes para este producto.</div>';
-                    return;
-                }
-                
-                const hoy = new Date();
-                hoy.setHours(0, 0, 0, 0);
-                const fechaLimiteWarning = new Date();
-                fechaLimiteWarning.setDate(hoy.getDate() + 30);
-
-                listaContainer.innerHTML = `
-                    <div class="lote-item" style="background: transparent; font-weight: bold;">
-                        <div>N° Lote</div><div>Fecha Venc.</div><div>Cantidad</div><div></div>
-                    </div>
-                    ${lotes.map(lote => {
-                        let fechaClase = '';
-                        let fechaFormateada = lote.fecha_vencimiento ? new Date(lote.fecha_vencimiento + 'T00:00:00').toLocaleDateString() : 'N/A';
-                        if (lote.fecha_vencimiento) {
-                            const fechaVenc = new Date(lote.fecha_vencimiento + 'T00:00:00');
-                            if (fechaVenc < hoy) {
-                                fechaClase = 'expirado';
-                            } else if (fechaVenc <= fechaLimiteWarning) {
-                                fechaClase = 'proximo-expirar';
-                            }
-                        }
-                        
-                        return `
-                        <div class="lote-item">
-                            <div>${lote.numero_lote || 'N/A'}</div>
-                            <div class="fecha-vencimiento ${fechaClase}">${fechaFormateada}</div>
-                            <div><strong>${lote.cantidad}</strong> und.</div>
-                            <div>
-                                <button class="btn-danger" style="padding: 0.5rem;" onclick="eliminarLote(${lote.id}, ${lote.producto_id})">Eliminar</button>
-                            </div>
-                        </div>
-                    `}).join('')}
-                `;
+                movimientos = data || [];
+                renderizarMovimientos();
             } catch (error) {
-                listaContainer.innerHTML = `<div class="error-info">${error.message}</div>`;
+                 tbody.innerHTML = `<tr><td colspan="6" class="error-info">${error.message}</td></tr>`;
             }
         }
+
+        function renderizarMovimientos() {
+            const tbody = document.getElementById('movimientosTableBody');
+            if (movimientos.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem;">No hay movimientos registrados para este producto.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = movimientos.map(m => {
+                const esIngreso = m.tipo_movimiento.startsWith('INGRESO');
+                return `
+                <tr>
+                    <td>${new Date(m.fecha_movimiento).toLocaleString()}</td>
+                    <td class="movimiento-tipo ${esIngreso ? 'ingreso' : 'salida'}">${m.tipo_movimiento.replace(/_/g, ' ')}</td>
+                    <td style="font-weight: 600;">${m.cantidad}</td>
+                    <td>${m.stock_resultante}</td>
+                    <td>${m.usuario_email || 'Sistema'}</td>
+                    <td>${m.referencia_id || 'N/A'}</td>
+                </tr>
+                `
+            }).join('');
+        }
         
-        async function agregarLote(event) {
+        async function abrirModalIngresoStock(productoId, event) {
+            event.stopPropagation();
+            document.getElementById('ingresoProductoId').value = productoId;
+            document.getElementById('ingresoStockForm').reset();
+            const container = document.getElementById('lotesParaIngresarContainer');
+            container.innerHTML = '';
+            agregarLoteParaIngreso(); // Agregar el primer lote por defecto
+            document.getElementById('ingresoStockModal').classList.add('show');
+        }
+
+        function cerrarModalIngresoStock() {
+            document.getElementById('ingresoStockModal').classList.remove('show');
+        }
+
+        function agregarLoteParaIngreso() {
+            const container = document.getElementById('lotesParaIngresarContainer');
+            const div = document.createElement('div');
+            div.className = 'lote-item lote-ingreso-item';
+            div.style.gridTemplateColumns = '1fr 1fr 1fr auto';
+            div.innerHTML = `
+                <div class="form-group" style="margin: 0;"><label>N° Lote</label><input type="text" class="loteNumeroIngreso"></div>
+                <div class="form-group" style="margin: 0;"><label>Vencimiento</label><input type="date" class="loteFechaIngreso"></div>
+                <div class="form-group" style="margin: 0;"><label>Cantidad</label><input type="number" min="1" class="loteCantidadIngreso" required></div>
+                <button type="button" class="btn-danger" style="align-self: center;" onclick="this.parentElement.remove()">×</button>
+            `;
+            container.appendChild(div);
+        }
+
+        async function registrarIngresoStock(event) {
             event.preventDefault();
-            const productoId = document.getElementById('loteProductoId').value;
-            const nuevoLote = {
-                producto_id: parseInt(productoId),
-                numero_lote: document.getElementById('loteNumero').value || null,
-                fecha_vencimiento: document.getElementById('loteFechaVencimiento').value || null,
-                cantidad: parseInt(document.getElementById('loteCantidad').value)
-            };
+            const productoId = document.getElementById('ingresoProductoId').value;
+            const comprobante = document.getElementById('ingresoComprobante').value;
+            const proveedor = document.getElementById('ingresoProveedor').value;
             
-            try {
-                const { error } = await supabaseClient.from('lotes_inventario').insert([nuevoLote]);
-                if (error) throw error;
-                
-                // Actualizar el stock total en la tabla de productos
-                const { error: rpcError } = await supabaseClient.rpc('actualizar_stock_producto', { id_producto: productoId });
-                if (rpcError) throw rpcError;
+            const lotes = [];
+            document.querySelectorAll('.lote-ingreso-item').forEach(item => {
+                const cantidad = item.querySelector('.loteCantidadIngreso').value;
+                if (cantidad) {
+                    lotes.push({
+                        numero_lote: item.querySelector('.loteNumeroIngreso').value || null,
+                        fecha_vencimiento: item.querySelector('.loteFechaIngreso').value || null,
+                        cantidad: parseInt(cantidad)
+                    });
+                }
+            });
 
-                mostrarNotificacion('✅ Lote añadido exitosamente.');
-                document.getElementById('loteForm').reset();
-                await renderizarLotes(productoId);
-                await cargarProductosAdmin(); // Actualiza la vista principal
-                await cargarProductos(); // Actualiza la tienda
-            } catch (error) {
-                alert('Error al añadir lote: ' + error.message);
+            if (lotes.length === 0) {
+                alert("Debes añadir al menos un lote con cantidad.");
+                return;
             }
-        }
-        
-        async function eliminarLote(loteId, productoId) {
-            if (!confirm('¿Estás seguro de eliminar este lote? Esta acción es irreversible.')) return;
 
             try {
-                const { error } = await supabaseClient.from('lotes_inventario').delete().eq('id', loteId);
-                if (error) throw error;
-                
-                const { error: rpcError } = await supabaseClient.rpc('actualizar_stock_producto', { id_producto: productoId });
-                if (rpcError) throw rpcError;
+                const { error } = await supabaseClient.rpc('registrar_ingreso_stock', {
+                    id_producto: productoId,
+                    lotes: lotes,
+                    comprobante: comprobante,
+                    prov: proveedor
+                });
 
-                mostrarNotificacion('🗑️ Lote eliminado.');
-                await renderizarLotes(productoId);
-                await cargarProductosAdmin();
+                if (error) throw error;
+
+                mostrarNotificacion('✅ Ingreso de stock registrado con éxito.');
+                cerrarModalIngresoStock();
+                await cargarInventario();
                 await cargarProductos();
             } catch (error) {
-                alert('Error al eliminar lote: ' + error.message);
+                alert("Error al registrar el ingreso: " + error.message);
             }
         }
 
@@ -3379,7 +3483,7 @@ NOTIFY pgrst_reload_schema;
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Productos");
             XLSX.writeFile(wb, "plantilla_productos_red51.xlsx");
-            mostrarNotificacion('📥 Plantilla de Excel (.xlsx) descargada. El stock se gestiona por lotes por separado.');
+            mostrarNotificacion('📥 Plantilla de Excel (.xlsx) descargada. El stock se gestiona desde el Módulo de Inventario.');
         }
 
         async function importarProductos(event) {
@@ -3431,7 +3535,7 @@ NOTIFY pgrst_reload_schema;
                         throw new Error('Los productos en el archivo no tienen el formato correcto (nombre, marca, categoria_id y precio son requeridos).');
                     }
                     
-                    if (!confirm(`Se importarán ${productosParaSupabase.length} productos. Recuerda gestionar sus lotes de inventario por separado. ¿Continuar?`)) {
+                    if (!confirm(`Se importarán ${productosParaSupabase.length} productos. Recuerda registrar sus ingresos de stock desde el Módulo de Inventario. ¿Continuar?`)) {
                          document.getElementById('loadingAdmin').style.display = 'none';
                          return;
                     }
@@ -3442,6 +3546,7 @@ NOTIFY pgrst_reload_schema;
                     mostrarNotificacion(`✅ ${productosParaSupabase.length} productos importados exitosamente.`);
                     await cargarProductosAdmin();
                     await cargarProductos();
+                    await cargarInventario();
                 } catch (error) {
                     alert('Error al importar productos: ' + error.message);
                 } finally {
@@ -3596,7 +3701,7 @@ NOTIFY pgrst_reload_schema;
             if (event.target == document.getElementById('pedidoModal')) cerrarModalPedido();
             if (event.target == document.getElementById('mapModal')) cerrarModalMapa();
             if (event.target == document.getElementById('detalleProductoModal')) cerrarModalDetalleProducto();
-            if (event.target == document.getElementById('loteModal')) cerrarModalLotes();
+            if (event.target == document.getElementById('ingresoStockModal')) cerrarModalIngresoStock();
         }
 
         inicializarSupabase();
