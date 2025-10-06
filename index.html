@@ -1553,7 +1553,11 @@ CREATE TABLE IF NOT EXISTS public.productos (id bigint PRIMARY KEY GENERATED ALW
 CREATE TABLE IF NOT EXISTS public.pedidos (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), numero_pedido serial NOT NULL, fecha_pedido timestamptz DEFAULT now(), nombre_cliente text, telefono_cliente text, email_cliente text, direccion text, productos jsonb, total numeric, cantidad_items integer, estado text, latitud double precision, longitud double precision);
 CREATE TABLE IF NOT EXISTS public.configuracion (clave text PRIMARY KEY, valor text, updated_at timestamptz DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.lotes_inventario (id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY, producto_id bigint NOT NULL, numero_lote text, fecha_vencimiento date, cantidad integer NOT NULL DEFAULT 0, created_at timestamptz DEFAULT now(), CONSTRAINT lotes_inventario_producto_id_fkey FOREIGN KEY (producto_id) REFERENCES public.productos(id) ON DELETE CASCADE);
-CREATE TYPE public.tipo_movimiento_enum AS ENUM ('INGRESO_COMPRA', 'SALIDA_VENTA', 'AJUSTE_MANUAL');
+DO $$ BEGIN
+    CREATE TYPE public.tipo_movimiento_enum AS ENUM ('INGRESO_COMPRA', 'SALIDA_VENTA', 'AJUSTE_MANUAL');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 CREATE TABLE IF NOT EXISTS public.movimientos_inventario (id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY, producto_id bigint NOT NULL, lote_id bigint, tipo_movimiento tipo_movimiento_enum NOT NULL, cantidad integer NOT NULL, stock_resultante integer NOT NULL, fecha_movimiento timestamptz DEFAULT now(), usuario_email text, referencia_id text, proveedor text, CONSTRAINT movimientos_inventario_producto_id_fkey FOREIGN KEY (producto_id) REFERENCES public.productos(id) ON DELETE CASCADE, CONSTRAINT movimientos_inventario_lote_id_fkey FOREIGN KEY (lote_id) REFERENCES public.lotes_inventario(id) ON DELETE SET NULL);
 
 -- Sincronización de la tabla 'productos'
@@ -1579,6 +1583,7 @@ DROP POLICY IF EXISTS "Allow full access for authenticated users" ON public.lote
 DROP POLICY IF EXISTS "Allow full access for authenticated users" ON public.movimientos_inventario; CREATE POLICY "Allow full access for authenticated users" ON public.movimientos_inventario FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 
 -- FUNCIÓN PARA ACTUALIZAR EL STOCK TOTAL DE UN PRODUCTO
+DROP FUNCTION IF EXISTS public.actualizar_stock_producto(bigint);
 CREATE OR REPLACE FUNCTION public.actualizar_stock_producto(id_producto bigint) RETURNS integer LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE stock_total integer;
 BEGIN
