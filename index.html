@@ -1322,7 +1322,14 @@
                         <div class="admin-section">
                             <div class="admin-header">
                                 <h2>Estado del Inventario</h2>
-                                <input type="text" id="inventorySearchInput" placeholder="Buscar producto..." oninput="renderizarInventario()" class="form-group" style="margin: 0; max-width: 400px; width: 100%;">
+                                <div class="admin-search-container">
+                                    <input type="text" id="inventorySearchInput" placeholder="Buscar producto..." oninput="renderizarInventario()" class="form-group" style="margin: 0; max-width: 400px; width: 100%;">
+                                </div>
+                                <div class="admin-actions">
+                                    <button class="btn-export" onclick="descargarPlantillaStock()">📥 Descargar Plantilla Stock</button>
+                                    <button class="btn-import" onclick="document.getElementById('importStockFile').click()">📤 Importar Stock</button>
+                                    <input type="file" id="importStockFile" accept=".csv,.xls,.xlsx" style="display:none;" onchange="importarStock(event)">
+                                </div>
                             </div>
                             <div style="overflow-x: auto;">
                                 <table class="admin-table">
@@ -1712,7 +1719,7 @@ BEGIN
     SELECT numero_pedido INTO pedido_numero FROM public.pedidos WHERE id = id_pedido;
     FOR producto_rec IN SELECT (p->>'id')::bigint AS producto_id, (p->>'cantidad')::integer AS cantidad, (p->>'producto')::text AS nombre_producto FROM public.pedidos, jsonb_array_elements(productos) AS p WHERE id = id_pedido LOOP
         SELECT stock INTO stock_total_producto FROM public.productos WHERE id = producto_rec.producto_id;
-        IF stock_total_producto &lt; producto_rec.cantidad THEN RAISE EXCEPTION 'Stock insuficiente para el producto: "%". Stock total actual: %, Requerido: %', producto_rec.nombre_producto, stock_total_producto, producto_rec.cantidad; END IF;
+        IF stock_total_producto < producto_rec.cantidad THEN RAISE EXCEPTION 'Stock insuficiente para el producto: "%". Stock total actual: %, Requerido: %', producto_rec.nombre_producto, stock_total_producto, producto_rec.cantidad; END IF;
     END LOOP;
     FOR producto_rec IN SELECT (p->>'id')::bigint AS producto_id, (p->>'cantidad')::integer AS cantidad FROM public.pedidos, jsonb_array_elements(productos) AS p WHERE id = id_pedido LOOP
         cantidad_a_descontar := producto_rec.cantidad;
@@ -1936,11 +1943,11 @@ NOTIFY pgrst_reload_schema;
                         </div>
                     </div>
 
-                    <h4>Lotes a Ingresar</h4>
+                    <h4 id="lotesContainerTitle">Lotes a Ingresar</h4>
                     <div id="lotesParaIngresarContainer">
                         <!-- Lotes se añaden aquí dinámicamente -->
                     </div>
-                    <button type="button" class="btn-secondary" onclick="agregarLoteParaIngresoDesdeBoton()" style="margin-top: 1rem;">+ Añadir otro lote</button>
+                    <button type="button" class="btn-secondary" id="btnAddLote" onclick="agregarLoteParaIngresoDesdeBoton()" style="margin-top: 1rem;">+ Añadir otro lote</button>
                     
                     <hr style="margin: 2rem 0; border: none; border-top: 1px solid var(--border-color);">
 
@@ -3461,12 +3468,18 @@ NOTIFY pgrst_reload_schema;
                 alert("Producto no encontrado. Por favor, recarga la página.");
                 return;
             }
+            
+            // Adaptar modal dinámicamente
+            const gestionaLotes = producto.gestiona_lotes;
+            document.getElementById('ingresoStockModalTitle').textContent = gestionaLotes ? 'Registrar Ingreso de Stock' : `Registrar Ingreso: ${producto.nombre}`;
+            document.getElementById('lotesContainerTitle').style.display = gestionaLotes ? 'block' : 'none';
+            document.getElementById('btnAddLote').style.display = gestionaLotes ? 'inline-block' : 'none';
 
             document.getElementById('ingresoProductoId').value = productoId;
             document.getElementById('ingresoStockForm').reset();
             const container = document.getElementById('lotesParaIngresarContainer');
             container.innerHTML = '';
-            agregarLoteParaIngreso(producto.gestiona_lotes);
+            agregarLoteParaIngreso(gestionaLotes);
             document.getElementById('ingresoStockModal').classList.add('show');
         }
 
@@ -3488,10 +3501,10 @@ NOTIFY pgrst_reload_schema;
                     <button type="button" class="btn-danger" style="align-self: end; margin-bottom: 1rem;" onclick="this.parentElement.remove()">×</button>
                 `;
             } else {
-                div.style.gridTemplateColumns = '1fr auto';
+                // Simplificado para productos sin lote
+                div.style.gridTemplateColumns = '1fr';
                 div.innerHTML = `
-                    <div class="form-group" style="margin: 0;"><label>Cantidad</label><input type="number" min="1" class="loteCantidadIngreso" required></div>
-                    <button type="button" class="btn-danger" style="align-self: end; margin-bottom: 1rem;" onclick="this.parentElement.remove()">×</button>
+                    <div class="form-group" style="margin: 0;"><label>Cantidad a Ingresar</label><input type="number" min="1" class="loteCantidadIngreso" required></div>
                 `;
             }
             container.appendChild(div);
@@ -3514,7 +3527,7 @@ NOTIFY pgrst_reload_schema;
                 const cantidadInput = item.querySelector('.loteCantidadIngreso');
                 const cantidad = cantidadInput ? cantidadInput.value : null;
 
-                if (cantidad) {
+                if (cantidad && parseInt(cantidad) > 0) {
                     const loteNumeroInput = item.querySelector('.loteNumeroIngreso');
                     const fechaIngresoInput = item.querySelector('.loteFechaIngreso');
 
@@ -3527,7 +3540,7 @@ NOTIFY pgrst_reload_schema;
             });
 
             if (lotes.length === 0) {
-                alert("Debes añadir al menos un lote/item con cantidad.");
+                alert("Debes añadir al menos un item con una cantidad mayor a cero.");
                 return;
             }
 
@@ -3683,6 +3696,134 @@ NOTIFY pgrst_reload_schema;
                 }
             };
             
+            if (file.name.endsWith('.csv')) {
+                reader.readAsText(file);
+            } else {
+                reader.readAsArrayBuffer(file);
+            }
+        }
+        
+        // --- ADMIN: Importación de Stock ---
+        function descargarPlantillaStock() {
+            const data = [
+                ["nombre_producto", "cantidad", "numero_lote", "fecha_vencimiento", "factura_compra", "proveedor"],
+                ["iPhone 15 Pro", 10, "LOTE-IPHONE-001", "2026-01-01", "F001-123", "Proveedor Apple"],
+                ["Cable USB-C", 50, "", "", "F001-124", "Proveedor Accesorios"]
+            ];
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Stock");
+            XLSX.writeFile(wb, "plantilla_ingreso_stock.xlsx");
+            mostrarNotificacion('📥 Plantilla de stock descargada. "numero_lote" y "fecha_vencimiento" son opcionales.');
+        }
+
+        async function importarStock(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    document.getElementById('loadingAdmin').style.display = 'block';
+                    const fileContent = e.target.result;
+                    let stockItems;
+
+                    if (file.name.endsWith('.csv')) {
+                        const lines = fileContent.split('\n');
+                        const headers = lines[0].split(',').map(h => h.trim());
+                        stockItems = lines.slice(1).map(line => {
+                            if (!line.trim()) return null;
+                            const values = line.split(',').map(v => v.trim());
+                            const item = {};
+                            headers.forEach((header, i) => item[header] = values[i] || null);
+                            return item;
+                        }).filter(Boolean);
+                    } else {
+                        const workbook = XLSX.read(fileContent, { type: 'array', cellDates: true });
+                        const sheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[sheetName];
+                        stockItems = XLSX.utils.sheet_to_json(worksheet);
+                    }
+
+                    if (stockItems.length === 0) throw new Error('No se encontraron items de stock en el archivo.');
+
+                    const productosPorProcesar = {};
+                    const productosNoEncontrados = new Set();
+                    let itemsValidos = 0;
+
+                    for (const item of stockItems) {
+                        const nombre = item.nombre_producto;
+                        const cantidad = parseInt(item.cantidad);
+
+                        if (!nombre || !cantidad || isNaN(cantidad)) continue;
+                        
+                        itemsValidos++;
+                        const producto = productosAdmin.find(p => p.nombre.toLowerCase() === nombre.toLowerCase());
+
+                        if (!producto) {
+                            productosNoEncontrados.add(nombre);
+                            continue;
+                        }
+
+                        if (!productosPorProcesar[producto.id]) {
+                            productosPorProcesar[producto.id] = {
+                                producto: producto,
+                                lotes: [],
+                                comprobante: item.factura_compra || `IMPORT-${new Date().toISOString().split('T')[0]}`,
+                                proveedor: item.proveedor || 'Importación Masiva'
+                            };
+                        }
+                        
+                        // Si la fecha es un objeto Date de xlsx, la formateamos
+                        let fechaVencimiento = item.fecha_vencimiento || null;
+                        if (fechaVencimiento instanceof Date) {
+                            fechaVencimiento = fechaVencimiento.toISOString().split('T')[0];
+                        }
+
+                        productosPorProcesar[producto.id].lotes.push({
+                            numero_lote: producto.gestiona_lotes ? (item.numero_lote || null) : `SINLOTE-${Date.now()}`,
+                            fecha_vencimiento: producto.gestiona_lotes ? (fechaVencimiento || null) : null,
+                            cantidad: cantidad
+                        });
+                    }
+                    
+                    const numProductosAfectados = Object.keys(productosPorProcesar).length;
+                    if (numProductosAfectados === 0) {
+                        throw new Error(`De ${itemsValidos} items válidos, no se encontró ningún producto correspondiente en la base de datos. Productos no encontrados: ${Array.from(productosNoEncontrados).join(', ')}`);
+                    }
+
+                    if (!confirm(`Se procesarán ingresos de stock para ${numProductosAfectados} producto(s) diferente(s). ${productosNoEncontrados.size > 0 ? `${productosNoEncontrados.size} producto(s) no fueron encontrados y serán omitidos.` : ''} ¿Deseas continuar?`)) {
+                        return;
+                    }
+
+                    const promesas = Object.values(productosPorProcesar).map(data => 
+                        supabaseClient.rpc('registrar_ingreso_stock', {
+                            id_producto: data.producto.id,
+                            lotes: data.lotes,
+                            comprobante: data.comprobante,
+                            prov: data.proveedor
+                        })
+                    );
+                    
+                    await Promise.all(promesas);
+
+                    let mensajeFinal = `✅ Importación completada. Se actualizó el stock para ${numProductosAfectados} producto(s).`;
+                    if (productosNoEncontrados.size > 0) {
+                        mensajeFinal += `\n\n⚠️ Productos no encontrados y omitidos: ${Array.from(productosNoEncontrados).join(', ')}. Por favor, créalos en la pestaña 'Productos' antes de importar su stock.`;
+                    }
+                    alert(mensajeFinal);
+
+                    await cargarInventario();
+                    await cargarProductos();
+
+                } catch (error) {
+                    alert('Error durante la importación de stock: ' + error.message);
+                } finally {
+                     document.getElementById('loadingAdmin').style.display = 'none';
+                     event.target.value = ''; // Reset file input
+                }
+            };
+
             if (file.name.endsWith('.csv')) {
                 reader.readAsText(file);
             } else {
