@@ -31,6 +31,7 @@ let productoSeleccionado = null;
 const estadosPosibles = ['pendiente_pago', 'pago_confirmado', 'en_preparacion', 'enviado', 'entregado', 'cancelado'];
 let currentVariantPreviewElement = null;
 let isLowStockFilterActive = false;
+let isProcessingOrder = false;
 const colorMap = {
     'rojo': '#ef4444', 'azul': '#3b82f6', 'verde': '#22c55e', 'negro': '#1f2937',
     'blanco': '#ffffff', 'amarillo': '#f59e0b', 'naranja': '#f97316', 'morado': '#8b5cf6',
@@ -652,22 +653,23 @@ window.seleccionarUbicacionEnMapa = seleccionarUbicacionEnMapa;
 async function realizarPedido(event) {
     event.preventDefault();
 
-    const btnPedido = document.getElementById('btnRealizarPedido') as HTMLButtonElement;
-    if (btnPedido.disabled) {
-        return;
+    if (isProcessingOrder) {
+        return; // Bloquea envíos duplicados si uno ya está en proceso
     }
-    btnPedido.disabled = true;
-    btnPedido.textContent = 'Procesando pedido...';
-    
-    const cartParaPedido = [...carrito]; 
+
+    const btnPedido = document.getElementById('btnRealizarPedido') as HTMLButtonElement;
+    const cartParaPedido = [...carrito];
 
     try {
+        isProcessingOrder = true; // Activa el "candado"
+        btnPedido.disabled = true;
+        btnPedido.textContent = 'Procesando pedido...';
+
         if (cartParaPedido.length === 0) {
             mostrarNotificacion('⚠️ Tu carrito está vacío.');
-            renderizarCarrito(); // Re-render to re-enable button for another try
-            return;
+            return; // El bloque finally se encargará de re-renderizar
         }
-        
+
         const nombre = (document.getElementById('nombreCliente') as HTMLInputElement).value;
         const telefono = (document.getElementById('telefonoCliente') as HTMLInputElement).value;
         const email = (document.getElementById('emailCliente') as HTMLInputElement).value || null;
@@ -675,9 +677,11 @@ async function realizarPedido(event) {
         let latitud = (document.getElementById('latitudCliente') as HTMLInputElement).value;
         let longitud = (document.getElementById('longitudCliente') as HTMLInputElement).value;
 
+        // Vacía el carrito de la UI inmediatamente
         carrito = [];
         actualizarContadorCarrito();
 
+        // Operación asíncrona (la causa del problema original)
         if (!latitud || !longitud) {
             const coords = await geocodeDireccion(direccion);
             if (coords) {
@@ -685,7 +689,7 @@ async function realizarPedido(event) {
                 longitud = coords.lon.toString();
             }
         }
-        
+
         const total = cartParaPedido.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
         const cantidad = cartParaPedido.reduce((sum, item) => sum + item.cantidad, 0);
 
@@ -699,8 +703,8 @@ async function realizarPedido(event) {
                 const costoUnitario = productoOriginal ? (productoOriginal.precio_costo || 0) : 0;
                 return {
                     id: item.id,
-                    producto: item.nombre, 
-                    marca: item.marca, 
+                    producto: item.nombre,
+                    marca: item.marca,
                     cantidad: item.cantidad,
                     precio_unitario: parseFloat(item.precio),
                     costo_unitario: costoUnitario,
@@ -714,7 +718,7 @@ async function realizarPedido(event) {
             latitud: latitud ? parseFloat(latitud) : null,
             longitud: longitud ? parseFloat(longitud) : null,
         };
-    
+
         const { data: pedidoGuardado, error } = await supabaseClient
             .from('pedidos')
             .insert([pedidoData])
@@ -722,7 +726,7 @@ async function realizarPedido(event) {
             .single();
 
         if (error) throw error;
-        
+
         try {
             await fetch('https://webhook.red51.site/webhook/pedidos_red51', {
                 method: 'POST',
@@ -737,10 +741,19 @@ async function realizarPedido(event) {
         document.getElementById('successMessage').style.display = 'block';
 
     } catch (error) {
+        // Si ocurre un error, restaura el carrito para que el usuario no pierda sus productos
         carrito = cartParaPedido;
         actualizarContadorCarrito();
-        renderizarCarrito(); 
         alert('Error al realizar el pedido: ' + (error as Error).message);
+    } finally {
+        isProcessingOrder = false; // Libera el "candado", permitiendo un nuevo envío si es necesario
+        
+        // Si el mensaje de éxito no está visible, significa que el pedido falló o el carrito estaba vacío.
+        // En ese caso, se vuelve a renderizar el carrito, lo que reactiva el botón de envío.
+        const successMessage = document.getElementById('successMessage') as HTMLElement;
+        if (successMessage.style.display !== 'block') {
+            renderizarCarrito();
+        }
     }
 }
 window.realizarPedido = realizarPedido;
