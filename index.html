@@ -1412,7 +1412,7 @@ BEGIN
         WHERE id = id_pedido
     LOOP
         SELECT stock INTO producto_stock_actual FROM public.productos WHERE id = producto_rec.producto_id;
-        IF producto_stock_actual < producto_rec.cantidad THEN
+        IF producto_stock_actual &lt; producto_rec.cantidad THEN
             RAISE EXCEPTION 'Stock insuficiente para el producto: "%". Stock actual: %, Requerido: %', producto_rec.nombre_producto, producto_stock_actual, producto_rec.cantidad;
         END IF;
     END LOOP;
