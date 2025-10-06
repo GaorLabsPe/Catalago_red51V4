@@ -1179,6 +1179,7 @@
                                         <th>Cliente</th>
                                         <th>Total</th>
                                         <th>Estado</th>
+                                        <th>Ubicación</th>
                                     </tr>
                                 </thead>
                                 <tbody id="adminPedidosTable"></tbody>
@@ -2181,7 +2182,7 @@ NOTIFY pgrst_reload_schema;
 
             const tbody = document.getElementById('adminPedidosTable');
             if(pedidosFiltrados.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 2rem;">No hay pedidos con este estado.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 2rem;">No hay pedidos con este estado.</td></tr>`;
                 return;
             }
             tbody.innerHTML = pedidosFiltrados.map(p => `
@@ -2194,6 +2195,11 @@ NOTIFY pgrst_reload_schema;
                          <select class="status-select ${p.estado}" onchange="cambiarEstadoPedido('${p.id}', this.value)">
                             ${estadosPosibles.map(e => `<option value="${e}" ${e === p.estado ? 'selected' : ''}>${e.replace(/_/g, ' ')}</option>`).join('')}
                         </select>
+                    </td>
+                    <td onclick="event.stopPropagation()" style="text-align: center;">
+                        ${p.latitud && p.longitud ? `
+                            <button class="btn-secondary" style="padding: 0.5rem; font-size: 1.2rem; line-height: 1;" onclick="abrirModalMapa(${p.latitud}, ${p.longitud}, 'Ubicación para: ${p.nombre_cliente}')">🗺️</button>
+                        ` : `<span>-</span>`}
                     </td>
                 </tr>
             `).join('');
