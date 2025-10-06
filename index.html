@@ -1699,11 +1699,28 @@
             };
             
             try {
-                const { error } = await supabaseClient.from('pedidos').insert([pedidoData]);
+                const { data: pedidoGuardado, error } = await supabaseClient
+                    .from('pedidos')
+                    .insert([pedidoData])
+                    .select()
+                    .single();
+
                 if (error) throw error;
+                
+                // Enviar al webhook de n8n
+                try {
+                    await fetch('https://webhook.red51.site/webhook/pedidos_red51', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(pedidoGuardado)
+                    });
+                } catch (webhookError) {
+                    console.warn('El pedido se guardó, pero falló el envío al webhook:', webhookError.message);
+                }
 
                 document.getElementById('cartContent').style.display = 'none';
                 document.getElementById('successMessage').style.display = 'block';
+
             } catch (error) {
                 alert('Error al realizar el pedido: ' + error.message);
                 btnPedido.disabled = false;
