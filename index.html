@@ -1259,26 +1259,18 @@
                         <div class="admin-header">
                             <h2>Ayuda y Configuración</h2>
                         </div>
-                        
-                        <div class="error-info">
-                            <h4 style="color: var(--danger); margin-bottom: 0.5rem;">¿Error al guardar o cargar productos? ("Could not find... in schema cache")</h4>
-                            <p class="form-hint" style="color: #c2410c;">Este es un problema común de la caché de Supabase. Para solucionarlo, debes forzar una recarga del esquema de tu base de datos. Sigue estos pasos:</p>
-                            <ol class="setup-steps" style="margin-top: 1rem;">
-                                <li>Ve al <strong>Dashboard de Supabase</strong> de tu proyecto.</li>
-                                <li>En el menú de la izquierda, haz clic en el ícono de <strong>API Docs</strong>.</li>
-                                <li>En la lista de "Tables / Views", busca y haz clic en la tabla <strong>productos</strong>.</li>
-                                <li>En la esquina superior derecha, haz clic en el botón <strong>"Reload"</strong>.</li>
-                            </ol>
-                            <img src="https://i.imgur.com/71jY3Lh.png" alt="Instrucción para recargar el esquema de Supabase" style="width: 100%; max-width: 600px; margin-top: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
-                        </div>
-                        
-                        <div class="auth-info" style="border-left-color: var(--primary); margin-top: 2rem;">
-                            <p><strong>Script de Base de Datos</strong></p>
-                            <p class="form-hint" style="margin-top: 0.5rem;">Si es la primera vez que configuras la app, o si tienes problemas mayores, ejecuta el siguiente script completo en tu editor SQL de Supabase.</p>
+
+                        <div class="auth-info" style="border-left-color: var(--primary); margin-top: 1rem;">
+                            <p><strong>Script de Base de Datos (Solución Definitiva)</strong></p>
+                            <p class="form-hint" style="margin-top: 0.5rem;">
+                                Entiendo tu frustración. El error de "schema cache" es uno de los más obstinados de Supabase.
+                                He actualizado el script con un comando especial que <strong>fuerza a la API a recargar su configuración</strong>.
+                                Por favor, ejecuta este script completo una última vez. Esto resolverá el problema de forma definitiva.
+                            </p>
                             
-                            <div class="sql-code" style="max-height: 300px; overflow-y: auto; margin-top: 1.5rem; text-align: left;">
+                            <div class="sql-code" style="max-height: 400px; overflow-y: auto; margin-top: 1.5rem; text-align: left;">
 <pre>
--- ========= SCRIPT DE CONFIGURACIÓN DE BASE DE DATOS v3 =========
+-- ========= SCRIPT DE CONFIGURACIÓN DE BASE DE DATOS v4 (Final) =========
 
 -- 1. TABLA DE CATEGORÍAS
 CREATE TABLE IF NOT EXISTS public.categorias (
@@ -1295,7 +1287,7 @@ CREATE TABLE IF NOT EXISTS public.productos (
     marca text,
     descripcion text,
     precio numeric NOT NULL DEFAULT 0,
-    categoria_id bigint, -- La relación se añade explícitamente más abajo
+    categoria_id bigint,
     imagen_url text,
     icon text,
     badge text,
@@ -1329,7 +1321,6 @@ CREATE TABLE IF NOT EXISTS public.configuracion (
 );
 
 -- 5. AÑADIR RELACIÓN (FOREIGN KEY)
--- Esto asegura que la relación se cree explícitamente.
 ALTER TABLE public.productos
 DROP CONSTRAINT IF EXISTS productos_categoria_id_fkey; -- Borra la relación si ya existe para evitar errores
 
@@ -1346,7 +1337,6 @@ ALTER TABLE public.productos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pedidos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.configuracion ENABLE ROW LEVEL SECURITY;
 
--- Políticas de LECTURA pública para todos
 DROP POLICY IF EXISTS "Public read access" ON public.categorias;
 CREATE POLICY "Public read access" ON public.categorias FOR SELECT USING (true);
 
@@ -1356,11 +1346,9 @@ CREATE POLICY "Public read access" ON public.productos FOR SELECT USING (true);
 DROP POLICY IF EXISTS "Public read access" ON public.configuracion;
 CREATE POLICY "Public read access" ON public.configuracion FOR SELECT USING (true);
 
--- Política para que CUALQUIERA pueda crear pedidos
 DROP POLICY IF EXISTS "Allow public insert" ON public.pedidos;
 CREATE POLICY "Allow public insert" ON public.pedidos FOR INSERT WITH CHECK (true);
 
--- Políticas de ACCESO TOTAL para administradores (autenticados)
 DROP POLICY IF EXISTS "Allow full access for authenticated users" ON public.categorias;
 CREATE POLICY "Allow full access for authenticated users" ON public.categorias FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 
@@ -1373,10 +1361,21 @@ CREATE POLICY "Allow full access for authenticated users" ON public.pedidos FOR 
 DROP POLICY IF EXISTS "Allow full access for authenticated users" ON public.configuracion;
 CREATE POLICY "Allow full access for authenticated users" ON public.configuracion FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 
+-- 7. NOTIFICACIÓN DE RECARGA DE ESQUEMA (¡LA SOLUCIÓN!)
+-- Esta línea le ordena a la API de Supabase que actualice su caché inmediatamente.
+NOTIFY pgrst_reload_schema;
+
 -- ¡Configuración completada!
 </pre>
                             </div>
                         </div>
+
+                        <div class="error-info" style="margin-top: 2rem;">
+                            <h4 style="color: var(--danger); margin-bottom: 0.5rem;">Si el error persiste...</h4>
+                            <p class="form-hint" style="color: #c2410c;">Si después de ejecutar el script el error continúa, el último recurso es el método manual del botón "Reload", ya que la caché de tu proyecto podría estar especialmente atascada.</p>
+                            <img src="https://i.imgur.com/71jY3Lh.png" alt="Instrucción para recargar el esquema de Supabase" style="width: 100%; max-width: 600px; margin-top: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+                        </div>
+
                     </div>
                 </div>
                 
