@@ -1185,7 +1185,7 @@
 
                 <div class="admin-nav">
                     <button class="admin-nav-btn active" id="navBtnPedidos" onclick="mostrarVistaAdmin('pedidos')">Pedidos</button>
-                    <button class="admin-nav-btn" id="navBtnProductos" onclick="mostrarVistaAdmin('productos')">Productos</button>
+                    <button class="admin-nav-btn" id="navBtnProductos" onclick="navegarAProductos()">Productos</button>
                     <button class="admin-nav-btn" id="navBtnCategorias" onclick="mostrarVistaAdmin('categorias')">Categorías</button>
                     <button class="admin-nav-btn" id="navBtnConfig" onclick="mostrarVistaAdmin('config')">Configuración</button>
                     <button class="admin-nav-btn" id="navBtnAyuda" onclick="mostrarVistaAdmin('ayuda')">Ayuda</button>
@@ -1740,6 +1740,11 @@ NOTIFY pgrst_reload_schema;
 
             document.getElementById(`${vista}View`).style.display = 'block';
             document.getElementById(`navBtn${vista.charAt(0).toUpperCase() + vista.slice(1)}`).classList.add('active');
+        }
+        
+        function navegarAProductos() {
+            limpiarFiltroProductos(); // Primero limpia cualquier filtro para asegurar una vista limpia
+            mostrarVistaAdmin('productos');
         }
 
         function cargarConfiguracionAdmin() {
