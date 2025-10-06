@@ -1711,7 +1711,7 @@ BEGIN
     SELECT numero_pedido INTO pedido_numero FROM public.pedidos WHERE id = id_pedido;
     FOR producto_rec IN SELECT (p->>'id')::bigint AS producto_id, (p->>'cantidad')::integer AS cantidad, (p->>'producto')::text AS nombre_producto FROM public.pedidos, jsonb_array_elements(productos) AS p WHERE id = id_pedido LOOP
         SELECT stock INTO stock_total_producto FROM public.productos WHERE id = producto_rec.producto_id;
-        IF stock_total_producto < producto_rec.cantidad THEN RAISE EXCEPTION 'Stock insuficiente para el producto: "%". Stock total actual: %, Requerido: %', producto_rec.nombre_producto, stock_total_producto, producto_rec.cantidad; END IF;
+        IF stock_total_producto &lt; producto_rec.cantidad THEN RAISE EXCEPTION 'Stock insuficiente para el producto: "%". Stock total actual: %, Requerido: %', producto_rec.nombre_producto, stock_total_producto, producto_rec.cantidad; END IF;
     END LOOP;
     FOR producto_rec IN SELECT (p->>'id')::bigint AS producto_id, (p->>'cantidad')::integer AS cantidad FROM public.pedidos, jsonb_array_elements(productos) AS p WHERE id = id_pedido LOOP
         cantidad_a_descontar := producto_rec.cantidad;

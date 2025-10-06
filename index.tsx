@@ -1,4 +1,5 @@
 
+
 const SUPABASE_URL = 'https://zejzrujrspeoszpfbjce.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InplanpydWpyc3Blb3N6cGZiamNlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2MDMyNDMsImV4cCI6MjA3NTE3OTI0M30.UAi4jQ0BH1hphW7OEh4JWP4hdVJ4CmvX6x4CyP2ak-U';
 const CLOUDINARY_CLOUD_NAME = 'dvj68er8s';
@@ -51,7 +52,13 @@ async function inicializarSupabase() {
 }
 
 function setupGlobalEventListeners() {
-    // This function is now intentionally empty. Event listeners are handled differently.
+    // Event delegation for the checkout form
+    document.addEventListener('submit', (event) => {
+        if (event.target && (event.target as HTMLElement).id === 'checkoutForm') {
+            event.preventDefault();
+            realizarPedido();
+        }
+    });
 }
 
 async function cargarConfiguracion() {
@@ -558,14 +565,6 @@ function renderizarCarrito() {
             </div>
             <button type="submit" class="btn-primary" id="btnRealizarPedido">Realizar Pedido</button>
         </form>`;
-
-    const form = document.getElementById('checkoutForm');
-    if (form) {
-        form.addEventListener('submit', (event) => {
-            event.preventDefault();
-            realizarPedido();
-        }, { once: true }); // Attach listener only once to prevent duplicates
-    }
 }
 
 function cambiarCantidad(cartId, cambio) {
