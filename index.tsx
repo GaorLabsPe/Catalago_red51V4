@@ -51,13 +51,7 @@ async function inicializarSupabase() {
 }
 
 function setupGlobalEventListeners() {
-    document.addEventListener('submit', (event) => {
-        // Global handler for the checkout form to prevent duplicate listeners
-        if (event.target && (event.target as HTMLElement).id === 'checkoutForm') {
-            event.preventDefault();
-            realizarPedido();
-        }
-    });
+    // This function is now intentionally empty. Event listeners are handled differently.
 }
 
 async function cargarConfiguracion() {
@@ -564,6 +558,14 @@ function renderizarCarrito() {
             </div>
             <button type="submit" class="btn-primary" id="btnRealizarPedido">Realizar Pedido</button>
         </form>`;
+
+    const form = document.getElementById('checkoutForm');
+    if (form) {
+        form.addEventListener('submit', (event) => {
+            event.preventDefault();
+            realizarPedido();
+        }, { once: true }); // Attach listener only once to prevent duplicates
+    }
 }
 
 function cambiarCantidad(cartId, cambio) {
@@ -601,20 +603,20 @@ async function realizarPedido() {
         return;
     }
 
-    const btnPedido = document.getElementById('btnRealizarPedido') as HTMLButtonElement;
     const cartParaPedido = [...carrito];
+    const form = document.getElementById('checkoutForm');
 
     try {
         isProcessingOrder = true;
-        if (btnPedido) {
-            btnPedido.disabled = true;
-            btnPedido.textContent = 'Procesando pedido...';
+        if (form) {
+             form.innerHTML = '<div class="loading" style="padding: 2rem 0;">Procesando tu pedido...</div>';
+        } else {
+             console.warn("Formulario no encontrado, posible intento de duplicado bloqueado.");
+             return; 
         }
 
         if (cartParaPedido.length === 0) {
             mostrarNotificacion('⚠️ Tu carrito está vacío.');
-            // We need to release the lock if we return early.
-            // No need to manually re-enable button, finally block handles the lock
             return;
         }
 
