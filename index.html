@@ -684,6 +684,7 @@
             margin-bottom: 2rem;
             padding-bottom: 1rem;
             border-bottom: 1px solid var(--border-color);
+            flex-wrap: wrap;
         }
 
         .admin-nav-btn {
@@ -738,20 +739,21 @@
             transform: translateY(-2px);
         }
         
-        .products-table, .categories-table, .pedidos-table {
+        .products-table, .categories-table, .pedidos-table, .reportes-table {
             width: 100%;
             border-collapse: collapse;
         }
         
         .products-table th, .products-table td,
         .categories-table th, .categories-table td,
-        .pedidos-table th, .pedidos-table td {
+        .pedidos-table th, .pedidos-table td,
+        .reportes-table th, .reportes-table td {
             padding: 1rem;
             text-align: left;
             border-bottom: 1px solid var(--border-color);
         }
         
-        .products-table th, .categories-table th, .pedidos-table th {
+        .products-table th, .categories-table th, .pedidos-table th, .reportes-table th {
             background: var(--light);
             font-weight: 700;
             color: var(--primary);
@@ -1122,7 +1124,7 @@
                 font-size: 1.2rem;
             }
             
-            .products-table, .categories-table, .pedidos-table {
+            .products-table, .categories-table, .pedidos-table, .reportes-table {
                 font-size: 0.85rem;
             }
         }
@@ -1206,6 +1208,7 @@
                     <button class="admin-nav-btn active" id="navBtnPedidos" onclick="mostrarVistaAdmin('pedidos')">Pedidos</button>
                     <button class="admin-nav-btn" id="navBtnProductos" onclick="navegarAProductos()">Productos</button>
                     <button class="admin-nav-btn" id="navBtnCategorias" onclick="mostrarVistaAdmin('categorias')">Categorías</button>
+                    <button class="admin-nav-btn" id="navBtnReportes" onclick="mostrarVistaAdmin('reportes')">Reportes</button>
                     <button class="admin-nav-btn" id="navBtnConfig" onclick="mostrarVistaAdmin('config')">Configuración</button>
                     <button class="admin-nav-btn" id="navBtnAyuda" onclick="mostrarVistaAdmin('ayuda')">Ayuda</button>
                 </div>
@@ -1308,6 +1311,69 @@
                         </div>
                     </div>
                 </div>
+                
+                <div id="reportesView" class="admin-view-content" style="display:none;">
+                    <div class="admin-section">
+                        <div class="admin-header" style="align-items: flex-end;">
+                            <h2>Reporte de Ventas y Ganancias</h2>
+                            <div class="admin-actions">
+                                <button class="btn-export" onclick="exportarReporteExcel()">📊 Exportar a Excel</button>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
+                            <div class="form-group" style="margin: 0;">
+                                <label>Desde</label>
+                                <input type="date" id="reporteFechaInicio">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label>Hasta</label>
+                                <input type="date" id="reporteFechaFin">
+                            </div>
+                            <button class="btn-primary" style="width: auto; padding: 1rem 2rem; align-self: flex-end;" onclick="generarReporteVentas()">Generar Reporte</button>
+                        </div>
+                    </div>
+                    
+                    <div class="kpi-container">
+                        <div class="kpi-card">
+                            <div class="kpi-card-title">Ingresos Totales (Venta)</div>
+                            <div class="kpi-card-value" id="reporteKpiIngresos">S/ 0.00</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-card-title">Costo Total de Ventas</div>
+                            <div class="kpi-card-value" id="reporteKpiCosto">S/ 0.00</div>
+                        </div>
+                        <div class="kpi-card" style="border-left: 4px solid var(--success);">
+                            <div class="kpi-card-title">Ganancia Bruta</div>
+                            <div class="kpi-card-value" id="reporteKpiGanancia">S/ 0.00</div>
+                        </div>
+                        <div class="kpi-card" style="border-left: 4px solid var(--info);">
+                            <div class="kpi-card-title">Margen de Ganancia</div>
+                            <div class="kpi-card-value" id="reporteKpiMargen">0.00 %</div>
+                        </div>
+                    </div>
+
+                    <div class="admin-section">
+                        <div style="overflow-x: auto;">
+                            <table class="reportes-table">
+                                <thead>
+                                    <tr>
+                                        <th>N° Pedido</th>
+                                        <th>Fecha</th>
+                                        <th>Cliente</th>
+                                        <th>Producto</th>
+                                        <th>Cant.</th>
+                                        <th>Total Venta</th>
+                                        <th>Costo Total</th>
+                                        <th>Ganancia</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reportesTableBody">
+                                    <tr><td colspan="8" style="text-align: center; padding: 2rem;">Selecciona un rango de fechas y genera un reporte.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
 
                 <div id="configView" class="admin-view-content" style="display:none;">
                      <div class="admin-section">
@@ -1334,7 +1400,8 @@
                         <p>¡Bienvenido al panel de control de tu tienda! Sigue estos pasos para poner todo en marcha:</p>
                         <ol>
                             <li><strong>Crea tus Categorías:</strong> Ve a la pestaña <strong>"Categorías"</strong> y añade las secciones para tus productos (ej: Laptops, Accesorios, Smartphones).</li>
-                            <li><strong>Añade tus Productos:</strong> En la pestaña <strong>"Productos"</strong>, haz clic en "+ Agregar Producto". Rellena los detalles, incluyendo el <strong>stock inicial</strong>, y asígnale una categoría.</li>
+                            <li><strong>Añade tus Productos:</strong> En la pestaña <strong>"Productos"</strong>, haz clic en "+ Agregar Producto". Rellena los detalles, incluyendo el <strong>stock inicial</strong> y el <strong>precio de costo</strong>, y asígnale una categoría.</li>
+                            <li><strong>Analiza tus Ventas:</strong> En la pestaña <strong>"Reportes"</strong>, selecciona un rango de fechas para ver tus ingresos, costos y ganancias.</li>
                             <li><strong>Personaliza tu Portada:</strong> Ve a <strong>"Configuración"</strong> y pega la URL de una imagen atractiva para la sección principal de tu tienda.</li>
                             <li><strong>Gestiona tus Pedidos:</strong> Cuando recibas una venta, aparecerá en la pestaña <strong>"Pedidos"</strong>. Al cambiar el estado a "Pago Confirmado" o "En Preparación", el stock se descontará automáticamente.</li>
                         </ol>
@@ -1342,13 +1409,17 @@
                     <div class="help-card">
                         <h3>🤔 Preguntas Frecuentes (FAQ)</h3>
                         <ul>
+                            <li>
+                                <strong>¿Para qué sirve el "Precio de Costo"?</strong>
+                                <p>Es un campo <strong>privado</strong> que te permite registrar cuánto te costó un producto. El sistema lo usa en la sección de <strong>"Reportes"</strong> para calcular automáticamente tu ganancia bruta y tu margen de ganancia por cada venta, ayudándote a entender la rentabilidad real de tu negocio.</p>
+                            </li>
                              <li>
                                 <strong>¿Cómo funciona el descuento de stock?</strong>
                                 <p>El sistema está diseñado para ser automático. Cuando cambias el estado de un pedido a <strong>"Pago Confirmado"</strong> o <strong>"En Preparación"</strong>, el sistema intentará descontar las unidades del inventario. Si un producto no tiene suficiente stock para completar el pedido, la operación se detendrá y recibirás un mensaje de error, protegiendo tu inventario. El sistema también evita descontar el stock más de una vez por el mismo pedido.</p>
                             </li>
                             <li>
                                 <strong>¿Cómo funcionan los productos con variantes (ej: color, talla)?</strong>
-                                <p>Al crear o editar un producto, busca la sección "Variantes". Haz clic en "+ Agregar tipo" para crear un tipo de variante (ej: "Color"). Luego, añade las opciones (ej: "Rojo", "Azul", "Verde") y presiona Enter. Para cada opción, puedes hacer clic en el ícono 🖼️ para asignarle una imagen específica. Puedes añadir múltiples tipos como "Talla", "Almacenamiento", etc. Tus clientes deberán elegir una opción de cada tipo antes de comprar. <strong>Nota:</strong> El stock actual se gestiona a nivel de producto general, no por variante individual.</p>
+                                <p>Al crear o editar un producto, busca la sección "Variantes". Haz clic en "+ Agregar tipo" para crear un tipo de variante (ej: "Color"). Luego, añade las opciones (ej: "Rojo", "Azul", "Verde") y presiona Enter. Para cada opción, puedes hacer clic en el ícono 🖼️ para asignarle una imagen específica. Puedes añadir múltiples tipos como "Talla", "Almacenamiento", etc. Tus clientes deberán elegir una opción de cada tipo antes de comprar. <strong>Nota:</strong> El stock y el precio de costo se gestionan a nivel de producto general, no por variante individual.</p>
                             </li>
                             <li>
                                 <strong>¿La subida de imágenes no funciona?</strong>
@@ -1380,7 +1451,7 @@
                                     </p>
                                     <div class="sql-code" style="max-height: 400px; overflow-y: auto; margin-top: 1.5rem; text-align: left;">
 <pre>
--- ========= SCRIPT DE CONFIGURACIÓN Y SINCRONIZACIÓN v8 (Gestión de Stock) =========
+-- ========= SCRIPT DE CONFIGURACIÓN Y SINCRONIZACIÓN v9 (Reportes y Ganancias) =========
 CREATE TABLE IF NOT EXISTS public.categorias (id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY, nombre text NOT NULL, slug text NOT NULL UNIQUE, created_at timestamptz DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.productos (id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY, nombre text NOT NULL, precio numeric NOT NULL DEFAULT 0, created_at timestamptz DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.pedidos (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), numero_pedido serial NOT NULL, fecha_pedido timestamptz DEFAULT now(), nombre_cliente text, telefono_cliente text, email_cliente text, direccion text, productos jsonb, total numeric, cantidad_items integer, estado text, latitud double precision, longitud double precision);
@@ -1388,7 +1459,7 @@ CREATE TABLE IF NOT EXISTS public.configuracion (clave text PRIMARY KEY, valor t
 
 -- Sincronización de la tabla 'productos'
 ALTER TABLE public.productos DROP COLUMN IF EXISTS categoria;
-ALTER TABLE public.productos ADD COLUMN IF NOT EXISTS marca text, ADD COLUMN IF NOT EXISTS descripcion text, ADD COLUMN IF NOT EXISTS imagen_url text, ADD COLUMN IF NOT EXISTS icon text, ADD COLUMN IF NOT EXISTS badge text, ADD COLUMN IF NOT EXISTS activo boolean DEFAULT true, ADD COLUMN IF NOT EXISTS variantes jsonb, ADD COLUMN IF NOT EXISTS categoria_id bigint, ADD COLUMN IF NOT EXISTS stock integer NOT NULL DEFAULT 0;
+ALTER TABLE public.productos ADD COLUMN IF NOT EXISTS marca text, ADD COLUMN IF NOT EXISTS descripcion text, ADD COLUMN IF NOT EXISTS imagen_url text, ADD COLUMN IF NOT EXISTS icon text, ADD COLUMN IF NOT EXISTS badge text, ADD COLUMN IF NOT EXISTS activo boolean DEFAULT true, ADD COLUMN IF NOT EXISTS variantes jsonb, ADD COLUMN IF NOT EXISTS categoria_id bigint, ADD COLUMN IF NOT EXISTS stock integer NOT NULL DEFAULT 0, ADD COLUMN IF NOT EXISTS precio_costo numeric NOT NULL DEFAULT 0;
 ALTER TABLE public.productos DROP CONSTRAINT IF EXISTS productos_categoria_id_fkey; 
 ALTER TABLE public.productos ADD CONSTRAINT productos_categoria_id_fkey FOREIGN KEY (categoria_id) REFERENCES public.categorias(id) ON DELETE SET NULL;
 
@@ -1512,15 +1583,20 @@ NOTIFY pgrst_reload_schema;
                         <label>Descripcion</label>
                         <textarea id="productoDescripcion" required></textarea>
                     </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
                         <div class="form-group">
-                            <label>Precio (S/)</label>
+                            <label>Precio de Costo (S/)</label>
+                            <input type="number" id="productoCosto" step="0.01" min="0" required value="0">
+                            <div class="form-hint">No es visible para el cliente. Usado para calcular ganancias.</div>
+                        </div>
+                        <div class="form-group">
+                            <label>Precio de Venta (S/)</label>
                             <input type="number" id="productoPrecio" step="0.01" min="0" required>
                         </div>
                         <div class="form-group">
                             <label>Stock</label>
                             <input type="number" id="productoStock" min="0" required value="0">
-                            <div class="form-hint">Inventario disponible. Se descuenta automáticamente con pedidos confirmados.</div>
+                            <div class="form-hint">Inventario disponible.</div>
                         </div>
                     </div>
                     <div class="form-group">
@@ -1644,6 +1720,7 @@ NOTIFY pgrst_reload_schema;
         let productosAdmin = [];
         let categorias = [];
         let pedidos = [];
+        let datosReporteActual = [];
         let usuarioActual = null;
         let configuracion = {};
         let mapa;
@@ -1766,6 +1843,14 @@ NOTIFY pgrst_reload_schema;
 
             document.getElementById(`${vista}View`).style.display = 'block';
             document.getElementById(`navBtn${vista.charAt(0).toUpperCase() + vista.slice(1)}`).classList.add('active');
+            
+            if (vista === 'reportes') {
+                const hoy = new Date();
+                const haceUnMes = new Date();
+                haceUnMes.setMonth(haceUnMes.getMonth() - 1);
+                document.getElementById('reporteFechaInicio').value = haceUnMes.toISOString().split('T')[0];
+                document.getElementById('reporteFechaFin').value = hoy.toISOString().split('T')[0];
+            }
         }
         
         function navegarAProductos() {
@@ -2821,6 +2906,7 @@ NOTIFY pgrst_reload_schema;
                 document.getElementById('productoMarca').value = data.marca;
                 document.getElementById('productoDescripcion').value = data.descripcion;
                 document.getElementById('productoPrecio').value = data.precio;
+                document.getElementById('productoCosto').value = data.precio_costo || 0;
                 document.getElementById('productoStock').value = data.stock;
                 document.getElementById('productoIcon').value = data.icon || '';
                 document.getElementById('productoBadge').value = data.badge || '';
@@ -2958,6 +3044,7 @@ NOTIFY pgrst_reload_schema;
                 categoria_id: categoriaIdValue ? parseInt(categoriaIdValue) : null,
                 descripcion: document.getElementById('productoDescripcion').value,
                 precio: parseFloat(document.getElementById('productoPrecio').value),
+                precio_costo: parseFloat(document.getElementById('productoCosto').value),
                 stock: parseInt(document.getElementById('productoStock').value),
                 icon: document.getElementById('productoIcon').value || '📦',
                 badge: document.getElementById('productoBadge').value || null,
@@ -3055,8 +3142,8 @@ NOTIFY pgrst_reload_schema;
 
         function descargarPlantilla() {
             const data = [
-                ["nombre", "marca", "categoria_id", "descripcion", "precio", "stock", "icon", "badge", "activo"],
-                ["iPhone 15 Pro", "Apple", 1, "Smartphone premium con la última tecnología", 4599.00, 50, "📱", "Nuevo", true]
+                ["nombre", "marca", "categoria_id", "descripcion", "precio", "precio_costo", "stock", "icon", "badge", "activo"],
+                ["iPhone 15 Pro", "Apple", 1, "Smartphone premium con la última tecnología", 4599.00, 3200.00, 50, "📱", "Nuevo", true]
             ];
             const ws = XLSX.utils.aoa_to_sheet(data);
             const wb = XLSX.utils.book_new();
@@ -3103,6 +3190,7 @@ NOTIFY pgrst_reload_schema;
                         categoria_id: p.categoria_id ? parseInt(p.categoria_id) : null,
                         descripcion: p.descripcion,
                         precio: p.precio ? parseFloat(p.precio) : 0,
+                        precio_costo: p.precio_costo ? parseFloat(p.precio_costo) : 0,
                         stock: p.stock ? parseInt(p.stock) : 0,
                         icon: p.icon,
                         badge: p.badge,
@@ -3137,6 +3225,124 @@ NOTIFY pgrst_reload_schema;
             } else {
                 reader.readAsArrayBuffer(file);
             }
+        }
+        
+        // --- ADMIN: Reportes ---
+        async function generarReporteVentas() {
+            const fechaInicio = document.getElementById('reporteFechaInicio').value;
+            const fechaFin = document.getElementById('reporteFechaFin').value;
+            
+            if (!fechaInicio || !fechaFin) {
+                alert("Por favor, selecciona un rango de fechas.");
+                return;
+            }
+
+            // Aseguramos que la fecha final incluya todo el día
+            const fechaFinCompleta = new Date(fechaFin);
+            fechaFinCompleta.setHours(23, 59, 59, 999);
+
+            try {
+                document.getElementById('loadingAdmin').style.display = 'block';
+                const { data, error } = await supabaseClient
+                    .from('pedidos')
+                    .select('*')
+                    .gte('fecha_pedido', new Date(fechaInicio).toISOString())
+                    .lte('fecha_pedido', fechaFinCompleta.toISOString())
+                    .order('fecha_pedido', { ascending: false });
+
+                if (error) throw error;
+                
+                const pedidosFiltrados = data || [];
+                datosReporteActual = [];
+                let totalIngresos = 0;
+                let totalCosto = 0;
+
+                pedidosFiltrados.forEach(pedido => {
+                    (pedido.productos || []).forEach(item => {
+                        const productoData = productosAdmin.find(p => p.id === item.id);
+                        const costoUnitario = productoData ? (productoData.precio_costo || 0) : 0;
+                        const costoTotalItem = costoUnitario * item.cantidad;
+                        const gananciaItem = item.subtotal - costoTotalItem;
+
+                        totalIngresos += item.subtotal;
+                        totalCosto += costoTotalItem;
+                        
+                        datosReporteActual.push({
+                            numero_pedido: pedido.numero_pedido,
+                            fecha: new Date(pedido.fecha_pedido).toLocaleDateString(),
+                            cliente: pedido.nombre_cliente,
+                            producto: item.producto,
+                            cantidad: item.cantidad,
+                            total_venta: item.subtotal,
+                            costo_total: costoTotalItem,
+                            ganancia: gananciaItem
+                        });
+                    });
+                });
+                
+                const gananciaBruta = totalIngresos - totalCosto;
+                const margenGanancia = totalIngresos > 0 ? (gananciaBruta / totalIngresos) * 100 : 0;
+
+                document.getElementById('reporteKpiIngresos').textContent = `S/ ${totalIngresos.toFixed(2)}`;
+                document.getElementById('reporteKpiCosto').textContent = `S/ ${totalCosto.toFixed(2)}`;
+                document.getElementById('reporteKpiGanancia').textContent = `S/ ${gananciaBruta.toFixed(2)}`;
+                document.getElementById('reporteKpiMargen').textContent = `${margenGanancia.toFixed(2)} %`;
+                
+                renderizarReporteTabla();
+
+            } catch (error) {
+                alert('Error al generar el reporte: ' + error.message);
+            } finally {
+                document.getElementById('loadingAdmin').style.display = 'none';
+            }
+        }
+        
+        function renderizarReporteTabla() {
+            const tbody = document.getElementById('reportesTableBody');
+            if (datosReporteActual.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem;">No se encontraron ventas en el período seleccionado.</td></tr>`;
+                return;
+            }
+            
+            tbody.innerHTML = datosReporteActual.map(item => `
+                <tr>
+                    <td>${item.numero_pedido}</td>
+                    <td>${item.fecha}</td>
+                    <td>${item.cliente}</td>
+                    <td>${item.producto}</td>
+                    <td>${item.cantidad}</td>
+                    <td>S/ ${item.total_venta.toFixed(2)}</td>
+                    <td>S/ ${item.costo_total.toFixed(2)}</td>
+                    <td style="font-weight: 600; color: ${item.ganancia > 0 ? 'var(--success)' : 'var(--danger)'};">S/ ${item.ganancia.toFixed(2)}</td>
+                </tr>
+            `).join('');
+        }
+
+        function exportarReporteExcel() {
+            if (datosReporteActual.length === 0) {
+                alert("No hay datos para exportar. Primero genera un reporte.");
+                return;
+            }
+            
+            const datosParaExportar = datosReporteActual.map(item => ({
+                "N° Pedido": item.numero_pedido,
+                "Fecha": item.fecha,
+                "Cliente": item.cliente,
+                "Producto": item.producto,
+                "Cantidad": item.cantidad,
+                "Total Venta (S/)": item.total_venta.toFixed(2),
+                "Costo Total (S/)": item.costo_total.toFixed(2),
+                "Ganancia (S/)": item.ganancia.toFixed(2)
+            }));
+            
+            const ws = XLSX.utils.json_to_sheet(datosParaExportar);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Reporte de Ventas");
+            
+            const fechaInicio = document.getElementById('reporteFechaInicio').value;
+            const fechaFin = document.getElementById('reporteFechaFin').value;
+            XLSX.writeFile(wb, `Reporte_Ventas_${fechaInicio}_a_${fechaFin}.xlsx`);
+            mostrarNotificacion('📊 Reporte de Excel (.xlsx) descargado.');
         }
 
 
