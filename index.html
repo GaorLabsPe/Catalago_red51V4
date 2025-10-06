@@ -1992,7 +1992,6 @@ NOTIFY pgrst_reload_schema;
         const estadosPosibles = ['pendiente_pago', 'pago_confirmado', 'en_preparacion', 'enviado', 'entregado', 'cancelado'];
         let currentVariantPreviewElement = null;
         let isLowStockFilterActive = false;
-        let isSubmittingOrder = false;
         const colorMap = {
             'rojo': '#ef4444', 'azul': '#3b82f6', 'verde': '#22c55e', 'negro': '#1f2937',
             'blanco': '#ffffff', 'amarillo': '#f59e0b', 'naranja': '#f97316', 'morado': '#8b5cf6',
@@ -2579,9 +2578,12 @@ NOTIFY pgrst_reload_schema;
 
         async function realizarPedido(event) {
             event.preventDefault();
-            if (isSubmittingOrder) return;
-
+            
             const btnPedido = document.getElementById('btnRealizarPedido');
+            if (btnPedido.disabled) {
+                return;
+            }
+            
             const cartParaPedido = [...carrito]; 
 
             if (cartParaPedido.length === 0) {
@@ -2589,20 +2591,20 @@ NOTIFY pgrst_reload_schema;
                 return;
             }
 
-            isSubmittingOrder = true;
             btnPedido.disabled = true;
             btnPedido.textContent = 'Procesando pedido...';
+            
+            const nombre = document.getElementById('nombreCliente').value;
+            const telefono = document.getElementById('telefonoCliente').value;
+            const email = document.getElementById('emailCliente').value || null;
+            const direccion = document.getElementById('direccionCliente').value;
+            let latitud = document.getElementById('latitudCliente').value;
+            let longitud = document.getElementById('longitudCliente').value;
+
+            carrito = [];
+            actualizarContadorCarrito();
 
             try {
-                carrito = [];
-                actualizarContadorCarrito();
-
-                const total = cartParaPedido.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
-                const cantidad = cartParaPedido.reduce((sum, item) => sum + item.cantidad, 0);
-                const direccion = document.getElementById('direccionCliente').value;
-                let latitud = document.getElementById('latitudCliente').value;
-                let longitud = document.getElementById('longitudCliente').value;
-
                 if (!latitud || !longitud) {
                     const coords = await geocodeDireccion(direccion);
                     if (coords) {
@@ -2610,11 +2612,14 @@ NOTIFY pgrst_reload_schema;
                         longitud = coords.lon;
                     }
                 }
+                
+                const total = cartParaPedido.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
+                const cantidad = cartParaPedido.reduce((sum, item) => sum + item.cantidad, 0);
 
                 const pedidoData = {
-                    nombre_cliente: document.getElementById('nombreCliente').value,
-                    telefono_cliente: document.getElementById('telefonoCliente').value,
-                    email_cliente: document.getElementById('emailCliente').value || null,
+                    nombre_cliente: nombre,
+                    telefono_cliente: telefono,
+                    email_cliente: email,
                     direccion: direccion,
                     productos: cartParaPedido.map(item => {
                         const productoOriginal = productos.find(p => p.id === item.id);
@@ -2663,8 +2668,6 @@ NOTIFY pgrst_reload_schema;
                 actualizarContadorCarrito();
                 renderizarCarrito(); 
                 alert('Error al realizar el pedido: ' + error.message);
-            } finally {
-                isSubmittingOrder = false;
             }
         }
 
