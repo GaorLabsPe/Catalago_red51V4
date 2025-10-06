@@ -547,7 +547,7 @@ function renderizarCarrito() {
             <span class="cart-total-label">Total:</span>
             <span class="cart-total-amount">S/ ${total.toFixed(2)}</span>
         </div>
-        <form class="checkout-form" onsubmit="realizarPedido(event)">
+        <form class="checkout-form" onsubmit="event.preventDefault(); return false;">
             <div class="form-group"><label>Nombre Completo</label><input type="text" id="nombreCliente" required></div>
             <div class="form-group"><label>Telefono (sin prefijo +51)</label><input type="tel" id="telefonoCliente" required placeholder="905820448"></div>
             <div class="form-group"><label>Email (Opcional)</label><input type="email" id="emailCliente" placeholder="cliente@ejemplo.com"></div>
@@ -560,7 +560,7 @@ function renderizarCarrito() {
                     <button type="button" class="btn-secondary" style="font-size: 0.9rem;" onclick="seleccionarUbicacionEnMapa()">🗺️ Seleccionar en el mapa</button>
                 </div>
             </div>
-            <button type="submit" class="btn-primary" id="btnRealizarPedido">Realizar Pedido</button>
+            <button type="button" class="btn-primary" id="btnRealizarPedido" onclick="realizarPedido(event)">Realizar Pedido</button>
         </form>`;
 }
 
