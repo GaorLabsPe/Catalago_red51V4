@@ -31,6 +31,7 @@ let productoSeleccionado = null;
 const estadosPosibles = ['pendiente_pago', 'pago_confirmado', 'en_preparacion', 'enviado', 'entregado', 'cancelado'];
 let currentVariantPreviewElement = null;
 let isLowStockFilterActive = false;
+let isProcessingOrder = false;
 const colorMap = {
     'rojo': '#ef4444', 'azul': '#3b82f6', 'verde': '#22c55e', 'negro': '#1f2937',
     'blanco': '#ffffff', 'amarillo': '#f59e0b', 'naranja': '#f97316', 'morado': '#8b5cf6',
@@ -77,7 +78,7 @@ async function cargarConfiguracion() {
             heroSection.style.background = 'linear-gradient(135deg, var(--secondary) 0%, var(--primary) 100%)';
         }
     } catch (error) {
-        console.error('Ocurrió un error inesperado al procesar la configuración de la tienda:', error.message || error);
+        console.error('Ocurrió un error inesperado al procesar la configuración de la tienda:', (error as Error).message || error);
     }
 }
 
@@ -92,7 +93,7 @@ async function cargarCategorias() {
             categorias = data || [];
         }
     } catch (error) {
-        console.error("Error inesperado al cargar categorías:", error.message);
+        console.error("Error inesperado al cargar categorías:", (error as Error).message);
         categorias = [];
     } finally {
         renderizarFiltrosCategorias();
@@ -124,7 +125,7 @@ async function iniciarSesion(event) {
         mostrarPanelAdmin();
     } catch (error) {
         errorDiv.style.display = 'block';
-        errorDiv.textContent = 'Error al iniciar sesion: ' + error.message;
+        errorDiv.textContent = 'Error al iniciar sesion: ' + (error as Error).message;
     }
 }
 window.iniciarSesion = iniciarSesion;
@@ -147,7 +148,7 @@ function mostrarPanelAdmin() {
 
 function mostrarVistaAdmin(vista, subVista = null) {
     // FIX: Cast element to HTMLElement to access style property
-    document.querySelectorAll('.admin-view-content').forEach(v => (v as HTMLElement).style.display = 'none');
+    document.querySelectorAll('.admin-view-content').forEach(v => ((v as HTMLElement).style.display = 'none'));
     document.querySelectorAll('.admin-nav-btn').forEach(b => b.classList.remove('active'));
 
     const vistaPrincipal = vista.startsWith('movimientos') ? 'inventario' : vista;
@@ -207,7 +208,7 @@ async function guardarConfiguracion(event) {
         await cargarConfiguracion();
         btn.title = 'No hay cambios para guardar';
     } catch (error) {
-        alert('Error al guardar: ' + error.message);
+        alert('Error al guardar: ' + (error as Error).message);
         btn.disabled = false;
     } finally {
         btn.textContent = originalText;
@@ -270,7 +271,7 @@ async function cargarProductos() {
 
     } catch (error) {
         document.getElementById('productsGrid').innerHTML = 
-            `<div class="empty-cart"><p>Error al cargar productos: ${error.message}</p><p style="font-size: 0.8rem; color: #999;">Asegúrate de haber ejecutado el script de configuración desde la pestaña de Ayuda en el panel Admin.</p></div>`;
+            `<div class="empty-cart"><p>Error al cargar productos: ${(error as Error).message}</p><p style="font-size: 0.8rem; color: #999;">Asegúrate de haber ejecutado el script de configuración desde la pestaña de Ayuda en el panel Admin.</p></div>`;
         productos = [];
     } finally {
         document.getElementById('loadingProducts').style.display = 'none';
@@ -499,7 +500,7 @@ function agregarAlCarrito(productoId, variantesSeleccionadas = null) {
 window.agregarAlCarrito = agregarAlCarrito;
 
 function actualizarContadorCarrito() {
-    document.getElementById('cartCount').textContent = carrito.reduce((sum, item) => sum + item.cantidad, 0);
+    document.getElementById('cartCount').textContent = carrito.reduce((sum, item) => sum + item.cantidad, 0).toString();
 }
 
 function abrirCarrito() {
@@ -602,7 +603,7 @@ async function geocodeDireccion(direccion) {
         }
         return null;
     } catch (error) {
-        console.warn("No se pudo geocodificar la dirección:", error.message);
+        console.warn("No se pudo geocodificar la dirección:", (error as Error).message);
         return null;
     }
 }
@@ -614,7 +615,7 @@ async function reverseGeocode(lat, lon) {
         const data = await response.json();
         return data.display_name || `${lat}, ${lon}`;
     } catch (error) {
-        console.warn("No se pudo obtener la dirección:", error.message);
+        console.warn("No se pudo obtener la dirección:", (error as Error).message);
         return "No se pudo obtener la dirección.";
     }
 }
@@ -651,43 +652,40 @@ window.seleccionarUbicacionEnMapa = seleccionarUbicacionEnMapa;
 
 async function realizarPedido(event) {
     event.preventDefault();
-    // FIX: Cast HTML element to access its properties
+
+    if (isProcessingOrder) {
+        console.warn("Submission ignored, an order is already being processed.");
+        return;
+    }
+
     const btnPedido = document.getElementById('btnRealizarPedido') as HTMLButtonElement;
-
-    // Comprobar el bloqueo al inicio de la función.
-    if (btnPedido.disabled) {
-        return;
-    }
-
-    // Bloquear la UI inmediatamente para prevenir clics dobles o re-intentos.
-    btnPedido.disabled = true;
-    btnPedido.textContent = 'Procesando pedido...';
-
-    // Tomar una "foto" del estado actual del carrito y los datos del formulario.
-    const cartParaPedido = [...carrito];
-    // FIX: Cast HTML elements to access their properties
-    const nombre = (document.getElementById('nombreCliente') as HTMLInputElement).value;
-    const telefono = (document.getElementById('telefonoCliente') as HTMLInputElement).value;
-    const email = (document.getElementById('emailCliente') as HTMLInputElement).value || null;
-    const direccion = (document.getElementById('direccionCliente') as HTMLTextAreaElement).value;
-    let latitud = (document.getElementById('latitudCliente') as HTMLInputElement).value;
-    let longitud = (document.getElementById('longitudCliente') as HTMLInputElement).value;
-
-    if (cartParaPedido.length === 0) {
-        mostrarNotificacion('⚠️ Tu carrito está vacío.');
-        btnPedido.disabled = false; // Desbloquear si no hay nada que procesar.
-        btnPedido.textContent = 'Realizar Pedido';
-        return;
-    }
-
-    // Acción atómica y crítica: Vaciar el carrito principal.
-    // A partir de este punto, cualquier otro llamado a esta función encontrará
-    // un carrito vacío y no podrá generar un pedido duplicado.
-    carrito = [];
-    actualizarContadorCarrito();
+    const cartParaPedido = [...carrito]; // Clonar el carrito para tener una copia segura
 
     try {
-        // Realizar operaciones asíncronas (que pueden tardar) de forma segura.
+        isProcessingOrder = true;
+        btnPedido.disabled = true;
+        btnPedido.textContent = 'Procesando pedido...';
+
+        if (cartParaPedido.length === 0) {
+            mostrarNotificacion('⚠️ Tu carrito está vacío.');
+            // No es necesario restaurar el carrito, ya que está vacío.
+            // El bloqueo se liberará en `finally`.
+            return;
+        }
+        
+        // Leer todos los datos del formulario ANTES de cualquier operación asíncrona
+        const nombre = (document.getElementById('nombreCliente') as HTMLInputElement).value;
+        const telefono = (document.getElementById('telefonoCliente') as HTMLInputElement).value;
+        const email = (document.getElementById('emailCliente') as HTMLInputElement).value || null;
+        const direccion = (document.getElementById('direccionCliente') as HTMLTextAreaElement).value;
+        let latitud = (document.getElementById('latitudCliente') as HTMLInputElement).value;
+        let longitud = (document.getElementById('longitudCliente') as HTMLInputElement).value;
+
+        // Acción atómica y crítica: Vaciar el carrito principal.
+        carrito = [];
+        actualizarContadorCarrito();
+
+        // Operaciones asíncronas se realizan ahora de forma segura
         if (!latitud || !longitud) {
             const coords = await geocodeDireccion(direccion);
             if (coords) {
@@ -718,7 +716,7 @@ async function realizarPedido(event) {
                     variantes: item.variantes_seleccionadas
                 };
             }),
-            total: parseFloat(total),
+            total: total,
             cantidad_items: cantidad,
             estado: 'pendiente_pago',
             latitud: latitud ? parseFloat(latitud) : null,
@@ -740,7 +738,7 @@ async function realizarPedido(event) {
                 body: JSON.stringify(pedidoGuardado)
             });
         } catch (webhookError) {
-            console.warn('El pedido se guardó, pero falló el envío al webhook:', webhookError.message);
+            console.warn('El pedido se guardó, pero falló el envío al webhook:', (webhookError as Error).message);
         }
 
         // Éxito: Mostrar mensaje de confirmación. El formulario ya no es necesario.
@@ -751,9 +749,14 @@ async function realizarPedido(event) {
         // En caso de error, restaurar el carrito a su estado original.
         carrito = cartParaPedido;
         actualizarContadorCarrito();
-        // Volver a renderizar el formulario del carrito, lo que creará un nuevo botón habilitado.
         renderizarCarrito(); 
-        alert('Error al realizar el pedido: ' + error.message);
+        alert('Error al realizar el pedido: ' + (error as Error).message);
+    
+    } finally {
+        // Este bloque se ejecuta SIEMPRE, garantizando que se libere el bloqueo.
+        isProcessingOrder = false;
+        // No es necesario tocar el botón aquí. En caso de éxito, el formulario desaparece.
+        // En caso de error, `renderizarCarrito()` crea un nuevo botón habilitado.
     }
 }
 window.realizarPedido = realizarPedido;
@@ -781,7 +784,7 @@ async function cargarPedidos() {
         renderizarFiltroEstados();
         renderizarPedidos();
     } catch (error) {
-        console.error("Error al cargar pedidos:", error.message);
+        console.error("Error al cargar pedidos:", (error as Error).message);
     }
 }
 
@@ -900,7 +903,7 @@ async function verDetallesPedido(pedidoId) {
 
 
     } catch (error) {
-        alert("Error al cargar detalles del pedido: " + error.message);
+        alert("Error al cargar detalles del pedido: " + (error as Error).message);
     }
 }
 window.verDetallesPedido = verDetallesPedido;
@@ -948,7 +951,7 @@ async function cambiarEstadoPedido(pedidoId, nuevoEstado) {
         }
 
     } catch(error) {
-        alert("Error al actualizar el estado: " + error.message);
+        alert("Error al actualizar el estado: " + (error as Error).message);
         await cargarPedidos(); // Recargar para revertir la UI a su estado real
     }
 }
@@ -1051,7 +1054,7 @@ async function cargarProductosAdmin() {
 
         renderizarProductosAdmin();
     } catch (error) {
-        alert('Error al cargar productos: ' + error.message);
+        alert('Error al cargar productos: ' + (error as Error).message);
     } finally {
         document.getElementById('loadingAdmin').style.display = 'none';
     }
@@ -1146,7 +1149,7 @@ async function cargarCategoriasAdmin() {
                 </td>
             </tr>`).join('');
     } catch (error) {
-        alert('Error al cargar categorías: ' + error.message);
+        alert('Error al cargar categorías: ' + (error as Error).message);
     }
 }
 
@@ -1196,7 +1199,7 @@ async function editarCategoria(id, event) {
         
         document.getElementById('categoriaModal').classList.add('show');
     } catch (error) {
-        alert('Error al cargar categoría: ' + error.message);
+        alert('Error al cargar categoría: ' + (error as Error).message);
     }
 }
 window.editarCategoria = editarCategoria;
@@ -1224,7 +1227,7 @@ async function guardarCategoria(event) {
         await cargarCategorias();
         cargarCategoriasAdmin();
     } catch (error) {
-        alert('Error al guardar categoría: ' + error.message);
+        alert('Error al guardar categoría: ' + (error as Error).message);
     }
 }
 window.guardarCategoria = guardarCategoria;
@@ -1239,7 +1242,7 @@ async function eliminarCategoria(id, event) {
         await cargarCategorias();
         cargarCategoriasAdmin();
     } catch (error) {
-        alert('Error al eliminar categoría: ' + error.message);
+        alert('Error al eliminar categoría: ' + (error as Error).message);
     }
 }
 window.eliminarCategoria = eliminarCategoria;
@@ -1332,7 +1335,7 @@ async function editarProducto(id, event) {
 
         document.getElementById('productoModal').classList.add('show');
     } catch (error) {
-        alert('Error al cargar producto: ' + error.message);
+        alert('Error al cargar producto: ' + (error as Error).message);
     }
 }
 window.editarProducto = editarProducto;
@@ -1479,12 +1482,12 @@ async function guardarProducto(event) {
         await cargarProductos();
         await cargarInventario();
     } catch (error) {
-        let friendlyMessage = 'Error al guardar producto: ' + error.message;
-        const lowerCaseError = error.message.toLowerCase();
+        let friendlyMessage = 'Error al guardar producto: ' + (error as Error).message;
+        const lowerCaseError = (error as Error).message.toLowerCase();
 
         if (lowerCaseError.includes("column \"precio_costo\" does not exist") || lowerCaseError.includes("could not find the 'precio_costo' column")) {
              friendlyMessage = `¡Error de Sincronización de Base de Datos!\n\nLa columna 'precio_costo' no existe en tu tabla de productos. Esto ocurre porque la aplicación fue actualizada para incluir el cálculo de ganancias, pero tu base de datos aún no ha sido actualizada.\n\n✅ SOLUCIÓN SENCILLA:\n1. Ve a la pestaña "Ayuda" en el panel de administrador.\n2. Busca la sección "Herramientas para Desarrolladores".\n3. Copia el script completo llamado "Script de Sincronización de Base de Datos".\n4. Pégalo y ejecútalo en el "SQL Editor" de tu proyecto en Supabase.\n\nEsto actualizará tu base de datos de forma segura sin borrar datos y solucionará el problema permanentemente.`;
-        } else if (error.message && error.message.includes('violates not-null constraint') && error.message.includes('"categoria"')) {
+        } else if ((error as Error).message && (error as Error).message.includes('violates not-null constraint') && (error as Error).message.includes('"categoria"')) {
             friendlyMessage += `\n\n[POSIBLE SOLUCIÓN] Este error suele ocurrir si la base de datos es de una versión anterior. Ve a Admin -> Ayuda -> Herramientas para Desarrolladores, copia el script completo y ejecútalo en el "SQL Editor" de tu Supabase para sincronizar la base de datos.`;
         }
         alert(friendlyMessage);
@@ -1503,7 +1506,7 @@ async function eliminarProducto(id, event) {
         await cargarProductos();
         await cargarInventario();
     } catch (error) {
-        alert('Error al eliminar producto: ' + error.message);
+        alert('Error al eliminar producto: ' + (error as Error).message);
     }
 }
 window.eliminarProducto = eliminarProducto;
@@ -1518,7 +1521,7 @@ async function cargarInventario() {
         renderizarInventario();
         calcularKPIsInventario();
     } catch (error) {
-        console.error("Error al cargar inventario:", error.message);
+        console.error("Error al cargar inventario:", (error as Error).message);
     }
 }
 
@@ -1574,7 +1577,7 @@ async function verMovimientos(productoId, nombreProducto) {
         movimientos = data || [];
         renderizarMovimientos();
     } catch (error) {
-         tbody.innerHTML = `<tr><td colspan="6" class="error-info">${error.message}</td></tr>`;
+         tbody.innerHTML = `<tr><td colspan="6" class="error-info">${(error as Error).message}</td></tr>`;
     }
 }
 window.verMovimientos = verMovimientos;
@@ -1705,7 +1708,7 @@ async function registrarIngresoStock(event) {
         await cargarInventario();
         await cargarProductos();
     } catch (error) {
-        alert("Error al registrar el ingreso: " + error.message);
+        alert("Error al registrar el ingreso: " + (error as Error).message);
     }
 }
 window.registrarIngresoStock = registrarIngresoStock;
@@ -1739,10 +1742,10 @@ async function subirImagenVariante(event) {
         mostrarNotificacion('🖼️ Imagen de variante asignada.');
 
     } catch (error) {
-        let friendlyMessage = 'Error al subir la imagen: ' + error.message;
-        if (error.message && (error.message.includes('upload preset') || error.message.includes('not found'))) {
+        let friendlyMessage = 'Error al subir la imagen: ' + (error as Error).message;
+        if ((error as Error).message && ((error as Error).message.includes('upload preset') || (error as Error).message.includes('not found'))) {
             friendlyMessage += `\n\n➡️ Solución: Verifica que el "upload_preset" ('${CLOUDINARY_UPLOAD_PRESET}') exista en tu cuenta de Cloudinary y que su modo sea "Unsigned". Revisa la sección de Ayuda para más detalles.`;
-        } else if (error.message && error.message.includes('cloud_name')) {
+        } else if ((error as Error).message && (error as Error).message.includes('cloud_name')) {
             friendlyMessage += `\n\n➡️ Solución: Verifica que el "cloud_name" ('${CLOUDINARY_CLOUD_NAME}') sea correcto.`;
         }
         alert(friendlyMessage);
@@ -1845,7 +1848,7 @@ async function importarProductos(event) {
             await cargarProductos();
             await cargarInventario();
         } catch (error) {
-            alert('Error al importar productos: ' + error.message);
+            alert('Error al importar productos: ' + (error as Error).message);
         } finally {
             document.getElementById('loadingAdmin').style.display = 'none';
             // FIX: Cast HTML element to access its properties
@@ -1981,7 +1984,7 @@ async function importarStock(event) {
             await cargarProductos();
 
         } catch (error) {
-            alert('Error durante la importación de stock: ' + error.message);
+            alert('Error durante la importación de stock: ' + (error as Error).message);
         } finally {
              document.getElementById('loadingAdmin').style.display = 'none';
              (event.target as HTMLInputElement).value = ''; // Reset file input
@@ -2028,7 +2031,7 @@ function inicializarReportes() {
 
 function mostrarSubVistaReporte(vista) {
     // FIX: Cast element to HTMLElement to access style property
-    document.querySelectorAll('.reporte-subview').forEach(v => (v as HTMLElement).style.display = 'none');
+    document.querySelectorAll('.reporte-subview').forEach(v => ((v as HTMLElement).style.display = 'none'));
     document.querySelectorAll('#reportesNav .admin-nav-btn').forEach(b => b.classList.remove('active'));
 
     document.getElementById(`reporte${vista.charAt(0).toUpperCase() + vista.slice(1)}View`).style.display = 'block';
@@ -2099,7 +2102,7 @@ async function generarReporteVentas() {
         renderizarReporteTabla();
 
     } catch (error) {
-        alert('Error al generar el reporte: ' + error.message);
+        alert('Error al generar el reporte: ' + (error as Error).message);
     } finally {
         document.getElementById('loadingAdmin').style.display = 'none';
     }
@@ -2195,7 +2198,7 @@ async function generarReporteVentasPorProducto() {
         `).join('');
 
     } catch (error) {
-        tbody.innerHTML = `<tr><td colspan="5" class="error-info">${error.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="error-info">${(error as Error).message}</td></tr>`;
     }
 }
 window.generarReporteVentasPorProducto = generarReporteVentasPorProducto;
@@ -2244,7 +2247,7 @@ async function generarReporteCompras() {
         `).join('');
         
     } catch (error) {
-        tbody.innerHTML = `<tr><td colspan="6" class="error-info">${error.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="error-info">${(error as Error).message}</td></tr>`;
     }
 }
 window.generarReporteCompras = generarReporteCompras;
