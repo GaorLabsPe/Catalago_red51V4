@@ -3068,7 +3068,11 @@ NOTIFY pgrst_reload_schema;
                 await cargarProductos();
             } catch (error) {
                 let friendlyMessage = 'Error al guardar producto: ' + error.message;
-                if (error.message && error.message.includes('violates not-null constraint') && error.message.includes('"categoria"')) {
+                const lowerCaseError = error.message.toLowerCase();
+
+                if (lowerCaseError.includes("column \"precio_costo\" does not exist") || lowerCaseError.includes("could not find the 'precio_costo' column")) {
+                     friendlyMessage = `¡Error de Sincronización de Base de Datos!\n\nLa columna 'precio_costo' no existe en tu tabla de productos. Esto ocurre porque la aplicación fue actualizada para incluir el cálculo de ganancias, pero tu base de datos aún no ha sido actualizada.\n\n✅ SOLUCIÓN SENCILLA:\n1. Ve a la pestaña "Ayuda" en el panel de administrador.\n2. Busca la sección "Herramientas para Desarrolladores".\n3. Copia el script completo llamado "Script de Sincronización de Base de Datos".\n4. Pégalo y ejecútalo en el "SQL Editor" de tu proyecto en Supabase.\n\nEsto actualizará tu base de datos de forma segura sin borrar datos y solucionará el problema permanentemente.`;
+                } else if (error.message && error.message.includes('violates not-null constraint') && error.message.includes('"categoria"')) {
                     friendlyMessage += `\n\n[POSIBLE SOLUCIÓN] Este error suele ocurrir si la base de datos es de una versión anterior. Ve a Admin -> Ayuda -> Herramientas para Desarrolladores, copia el script completo y ejecútalo en el "SQL Editor" de tu Supabase para sincronizar la base de datos.`;
                 }
                 alert(friendlyMessage);
