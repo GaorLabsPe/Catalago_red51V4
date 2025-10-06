@@ -1317,8 +1317,17 @@
                                 <p>Al crear o editar un producto, busca la sección "Variantes". Haz clic en "+ Agregar tipo" para crear un tipo de variante (ej: "Color"). Luego, añade las opciones (ej: "Rojo", "Azul", "Verde") y presiona Enter. Puedes añadir múltiples tipos como "Talla", "Almacenamiento", etc. Tus clientes deberán elegir una opción de cada tipo antes de comprar.</p>
                             </li>
                             <li>
-                                <strong>¿Cómo subo imágenes?</strong>
-                                <p>En el formulario de producto, puedes subir una imagen desde tu computadora o pegar una URL de una imagen que ya esté en internet. Usamos un servicio llamado Cloudinary para optimizar las imágenes automáticamente, asegurando que tu tienda cargue siempre rápido.</p>
+                                <strong>¿La subida de imágenes no funciona?</strong>
+                                <p>La función para subir archivos desde tu computadora depende de un servicio externo llamado Cloudinary. Para que funcione, es <strong>esencial</strong> que lo configures con tu propia cuenta gratuita. Los valores de ejemplo pueden haber expirado.</p>
+                                <ol style="margin-top: 0.5rem; padding-left: 25px;">
+                                    <li>Crea una cuenta gratuita en <a href="https://cloudinary.com/" target="_blank" rel="noopener noreferrer">Cloudinary.com</a>.</li>
+                                    <li>En tu panel de control de Cloudinary, busca y copia tu <strong>"Cloud Name"</strong>.</li>
+                                    <li>Ve a "Settings" (el icono del engranaje ⚙️) y luego a la pestaña <strong>"Upload"</strong>.</li>
+                                    <li>Baja hasta la sección "Upload Presets", haz clic en "Add upload preset".</li>
+                                    <li>Asígnale un nombre (ej: <code>red51_productos</code>). Lo más importante: cambia el "Signing Mode" a <strong>"Unsigned"</strong>. Guarda los cambios.</li>
+                                    <li>Finalmente, actualiza las constantes <code>CLOUDINARY_CLOUD_NAME</code> y <code>CLOUDINARY_UPLOAD_PRESET</code> al inicio de la sección <code>&lt;script&gt;</code> en el archivo <code>index.html</code> con tus propios datos.</li>
+                                </ol>
+                                <p style="margin-top: 0.5rem;"><strong>Alternativa:</strong> Si no quieres configurar esto, simplemente puedes pegar una URL de una imagen que ya esté en internet en el campo "O pega URL de imagen".</p>
                             </li>
                              <li>
                                 <strong>¿Qué es el "slug" en las categorías?</strong>
@@ -2708,8 +2717,13 @@ NOTIFY pgrst_reload_schema;
                 formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
                 
                 const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, { method: 'POST', body: formData });
-                if (!response.ok) throw new Error('Error al subir la imagen');
+                
                 const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error.message || 'Error desconocido desde Cloudinary.');
+                }
+
                 progressFill.style.width = '100%';
                 
                 document.getElementById('productoImagen').value = data.secure_url;
@@ -2718,7 +2732,13 @@ NOTIFY pgrst_reload_schema;
                 mostrarNotificacion('🖼️ Imagen subida');
                 setTimeout(() => { progressBar.style.display = 'none'; }, 1000);
             } catch (error) {
-                alert('Error al subir la imagen: ' + error.message);
+                let friendlyMessage = 'Error al subir la imagen: ' + error.message;
+                if (error.message && (error.message.includes('upload preset') || error.message.includes('not found'))) {
+                    friendlyMessage += `\n\n➡️ Solución: Verifica que el "upload_preset" ('${CLOUDINARY_UPLOAD_PRESET}') exista en tu cuenta de Cloudinary y que su modo sea "Unsigned". Revisa la sección de Ayuda para más detalles.`;
+                } else if (error.message && error.message.includes('cloud_name')) {
+                    friendlyMessage += `\n\n➡️ Solución: Verifica que el "cloud_name" ('${CLOUDINARY_CLOUD_NAME}') sea correcto.`;
+                }
+                alert(friendlyMessage);
                 progressBar.style.display = 'none';
             }
         }
