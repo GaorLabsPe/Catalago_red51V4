@@ -1208,9 +1208,9 @@
                         <div class="admin-header">
                             <h2>Gestion de Productos</h2>
                             <div class="admin-actions">
-                                <button class="btn-export" onclick="descargarPlantilla()">📥 Descargar Plantilla CSV</button>
-                                <button class="btn-import" onclick="document.getElementById('importFile').click()">📤 Importar CSV</button>
-                                <input type="file" id="importFile" accept=".csv" style="display:none;" onchange="importarProductos(event)">
+                                <button class="btn-export" onclick="descargarPlantilla()">📥 Descargar Plantilla XLS</button>
+                                <button class="btn-import" onclick="document.getElementById('importFile').click()">📤 Importar Archivo</button>
+                                <input type="file" id="importFile" accept=".csv,.xls,.xlsx" style="display:none;" onchange="importarProductos(event)">
                                 <button class="btn-secondary" onclick="abrirModalProducto()">+ Agregar Producto</button>
                             </div>
                         </div>
@@ -1410,9 +1410,9 @@ NOTIFY pgrst_reload_schema;
                         <label>Precio (S/)</label>
                         <input type="number" id="productoPrecio" step="0.01" min="0" required>
                     </div>
-                    <div class="form-group" style="display: none;">
-                        <label>Imagen del Producto (Ahora se asigna por variante)</label>
-                        <input type="url" id="productoImagen" placeholder="O pega URL de imagen" oninput="previewImagen()">
+                    <div class="form-group">
+                        <label>Imagen Principal (URL) - Usada si no hay imágenes en variantes</label>
+                        <input type="url" id="productoImagen" placeholder="https://ejemplo.com/imagen.jpg">
                     </div>
                     <div class="form-group">
                         <label>Icono (Emoji) - Se usa si no hay imagen</label>
@@ -1517,6 +1517,7 @@ NOTIFY pgrst_reload_schema;
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
         const SUPABASE_URL = 'https://zejzrujrspeoszpfbjce.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InplanpydWpyc3Blb3N6cGZiamNlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2MDMyNDMsImV4cCI6MjA3NTE3OTI0M30.UAi4jQ0BH1hphW7OEh4JWP4hdVJ4CmvX6x4CyP2ak-U';
@@ -2771,51 +2772,75 @@ NOTIFY pgrst_reload_schema;
         }
 
         function descargarPlantilla() {
-            const csvContent = `nombre,marca,categoria_id,descripcion,precio,icon,badge,activo\niPhone 15 Pro,Apple,1,Smartphone premium,4599.00,📱,Nuevo,true`;
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'plantilla_productos_red51.csv';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            mostrarNotificacion('📥 Plantilla CSV descargada.');
+            const data = [
+                ["nombre", "marca", "categoria_id", "descripcion", "precio", "icon", "badge", "activo"],
+                ["iPhone 15 Pro", "Apple", 1, "Smartphone premium con la última tecnología", 4599.00, "📱", "Nuevo", true]
+            ];
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Productos");
+            XLSX.writeFile(wb, "plantilla_productos_red51.xlsx");
+            mostrarNotificacion('📥 Plantilla de Excel (.xlsx) descargada.');
         }
 
         async function importarProductos(event) {
             const file = event.target.files[0];
             if (!file) return;
+
             const reader = new FileReader();
             reader.onload = async function(e) {
                 try {
-                    const lines = e.target.result.split('\n');
-                    const headers = lines[0].split(',').map(h => h.trim());
-                    const productosImportados = lines.slice(1).map(line => {
-                        if (!line.trim()) return null;
-                        const values = line.split(',').map(v => v.trim());
-                        const producto = {};
-                        headers.forEach((header, i) => {
-                            if (header === 'categoria_id' || header === 'precio') {
-                                producto[header] = parseFloat(values[i]);
-                            } else if (header === 'activo') {
-                                producto[header] = values[i]?.toLowerCase() === 'true';
-                            } else {
-                                producto[header] = values[i] || null;
-                            }
-                        });
-                        return producto;
-                    }).filter(p => p && p.nombre && p.marca && p.categoria_id && p.precio);
-                    
-                    if (productosImportados.length === 0) return alert('No se encontraron productos válidos en el CSV');
-                    if (!confirm(`Se importarán ${productosImportados.length} productos. ¿Continuar?`)) return;
-                    
                     document.getElementById('loadingAdmin').style.display = 'block';
-                    const { error } = await supabaseClient.from('productos').insert(productosImportados);
+                    let productosImportados = [];
+                    const fileContent = e.target.result;
+
+                    if (file.name.endsWith('.csv')) {
+                        const lines = fileContent.split('\n');
+                        const headers = lines[0].split(',').map(h => h.trim());
+                        productosImportados = lines.slice(1).map(line => {
+                            if (!line.trim()) return null;
+                            const values = line.split(',').map(v => v.trim());
+                            const producto = {};
+                            headers.forEach((header, i) => producto[header] = values[i] || null);
+                            return producto;
+                        }).filter(Boolean);
+                    } else { // Handle .xls, .xlsx
+                        const workbook = XLSX.read(fileContent, { type: 'array' });
+                        const sheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[sheetName];
+                        productosImportados = XLSX.utils.sheet_to_json(worksheet);
+                    }
+
+                    if (productosImportados.length === 0) {
+                         throw new Error('No se encontraron productos válidos en el archivo.');
+                    }
+                    
+                    const productosParaSupabase = productosImportados.map(p => ({
+                        nombre: p.nombre,
+                        marca: p.marca,
+                        categoria_id: p.categoria_id ? parseInt(p.categoria_id) : null,
+                        descripcion: p.descripcion,
+                        precio: p.precio ? parseFloat(p.precio) : 0,
+                        icon: p.icon,
+                        badge: p.badge,
+                        activo: String(p.activo).toLowerCase() === 'true'
+                    })).filter(p => p.nombre && p.marca && p.categoria_id && p.precio);
+                    
+                    if (productosParaSupabase.length === 0) {
+                        throw new Error('Los productos en el archivo no tienen el formato correcto (nombre, marca, categoria_id y precio son requeridos).');
+                    }
+                    
+                    if (!confirm(`Se importarán ${productosParaSupabase.length} productos. ¿Continuar?`)) {
+                         document.getElementById('loadingAdmin').style.display = 'none';
+                         return;
+                    }
+
+                    const { error } = await supabaseClient.from('productos').insert(productosParaSupabase);
                     if (error) throw error;
                     
-                    mostrarNotificacion(`✅ ${productosImportados.length} productos importados`);
-                    cargarProductosAdmin();
-                    cargarProductos();
+                    mostrarNotificacion(`✅ ${productosParaSupabase.length} productos importados exitosamente.`);
+                    await cargarProductosAdmin();
+                    await cargarProductos();
                 } catch (error) {
                     alert('Error al importar productos: ' + error.message);
                 } finally {
@@ -2823,8 +2848,14 @@ NOTIFY pgrst_reload_schema;
                     event.target.value = '';
                 }
             };
-            reader.readAsText(file);
+            
+            if (file.name.endsWith('.csv')) {
+                reader.readAsText(file);
+            } else {
+                reader.readAsArrayBuffer(file);
+            }
         }
+
 
         function mostrarNotificacion(mensaje) {
             const notif = document.createElement('div');
