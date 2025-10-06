@@ -1248,6 +1248,7 @@
                                 <button class="btn-secondary" onclick="abrirModalProducto()">+ Agregar Producto</button>
                             </div>
                         </div>
+                        <h3 id="productFilterTitle" class="section-title" style="font-size: 1.2rem; text-align: left; margin-bottom: 1rem; display: none;"></h3>
                         <div style="overflow-x: auto;">
                             <table class="products-table">
                                 <thead>
@@ -2011,8 +2012,16 @@ NOTIFY pgrst_reload_schema;
 
         function agregarAlCarrito(productoId, variantesSeleccionadas = null) {
             const producto = productos.find(p => p.id === productoId);
+            if (!producto) return;
+
             const cartId = generarCartId(productoId, variantesSeleccionadas);
             const itemExistente = carrito.find(item => item.cartId === cartId);
+            const cantidadEnCarrito = itemExistente ? itemExistente.cantidad : 0;
+
+            if (cantidadEnCarrito + 1 > producto.stock) {
+                mostrarNotificacion(`⚠️ Stock insuficiente. Solo quedan ${producto.stock} unidades.`);
+                return;
+            }
 
             if (itemExistente) {
                 itemExistente.cantidad++;
@@ -2095,8 +2104,18 @@ NOTIFY pgrst_reload_schema;
             const itemIndex = carrito.findIndex(item => item.cartId === cartId);
             if (itemIndex === -1) return;
 
-            carrito[itemIndex].cantidad += cambio;
-            if (carrito[itemIndex].cantidad <= 0) carrito.splice(itemIndex, 1);
+            const item = carrito[itemIndex];
+            const producto = productos.find(p => p.id === item.id);
+
+            if (cambio > 0 && producto && (item.cantidad + cambio > producto.stock)) {
+                mostrarNotificacion(`⚠️ Stock insuficiente. Solo quedan ${producto.stock} unidades.`);
+                return;
+            }
+
+            item.cantidad += cambio;
+            if (item.cantidad <= 0) {
+                carrito.splice(itemIndex, 1);
+            }
             
             actualizarContadorCarrito();
             renderizarCarrito();
@@ -2525,11 +2544,16 @@ NOTIFY pgrst_reload_schema;
             const tbody = document.getElementById('adminProductsTable');
             const searchTerm = document.getElementById('productSearchInput').value.toLowerCase();
             const clearBtn = document.getElementById('clearProductFilterBtn');
+            const filterTitle = document.getElementById('productFilterTitle');
 
             let productosFiltrados = productosAdmin;
 
             if (isLowStockFilterActive) {
                 productosFiltrados = productosFiltrados.filter(p => p.stock > 0 && p.stock <= 5);
+                filterTitle.textContent = 'Mostrando productos con bajo stock (5 o menos unidades)';
+                filterTitle.style.display = 'block';
+            } else {
+                 filterTitle.style.display = 'none';
             }
             
             if (searchTerm) {
