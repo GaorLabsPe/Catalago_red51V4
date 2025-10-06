@@ -1629,16 +1629,19 @@
                         </ul>
                     </div>
                     <div class="help-card">
-                         <details>
+                         <details open>
                             <summary>🛠️ Herramientas para Desarrolladores y Solución de Problemas</summary>
                             <div style="padding-top: 1rem;">
-                                <p>Esta sección contiene herramientas para la configuración inicial o para solucionar problemas avanzados en la base de datos. <strong>No modifiques nada aquí a menos que sepas lo que estás haciendo.</strong></p>
-                                <div class="auth-info" style="border-left-color: var(--primary); margin-top: 1rem;">
-                                    <p><strong>Script de Sincronización de Base de Datos (Definitivo)</strong></p>
+                                <div class="error-info" style="border-left-color: var(--warning); background: #fffbeb; margin-bottom: 1rem;">
+                                    <h4 style="color: #b45309; margin-bottom: 0.5rem;">⚠️ ¡ACCIÓN REQUERIDA! Actualiza tu Base de Datos</h4>
                                     <p class="form-hint" style="margin-top: 0.5rem;">
-                                        Este script se usa una sola vez durante la instalación para crear y configurar todas las tablas necesarias en tu base de datos de Supabase. Si tienes problemas como "columna no encontrada" o errores al guardar, ejecutar este script completo en el "SQL Editor" de Supabase suele solucionarlo.
+                                        La última versión de la aplicación requiere una actualización en tu base de datos para funcionar correctamente. <strong>El error "Could not find the function public.crear_pedido" se soluciona ejecutando este script.</strong>
                                     </p>
-                                    <div class="sql-code" style="max-height: 400px; overflow-y: auto; margin-top: 1.5rem; text-align: left;">
+                                    <p class="form-hint" style="margin-top: 0.5rem;">
+                                        Copia el script completo de abajo, ve al <strong>"SQL Editor"</strong> en tu proyecto de Supabase, pégalo y haz clic en <strong>"RUN"</strong>. Esto es seguro y no borrará tus datos.
+                                    </p>
+                                </div>
+                                <div class="sql-code" style="max-height: 400px; overflow-y: auto; text-align: left;">
 <pre>
 -- ========= SCRIPT DE CONFIGURACIÓN Y SINCRONIZACIÓN v13 (Función Segura para Webhook) =========
 CREATE TABLE IF NOT EXISTS public.categorias (id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY, nombre text NOT NULL, slug text NOT NULL UNIQUE, created_at timestamz DEFAULT now());
