@@ -572,6 +572,8 @@
             opacity: 0.6;
             cursor: not-allowed;
             transform: none;
+            background: var(--secondary); /* Keep color on disabled */
+            box-shadow: none;
         }
         
         .btn-secondary {
@@ -1493,7 +1495,7 @@ NOTIFY pgrst_reload_schema;
                          <div class="form-hint">Añade opciones para tu producto. Los clientes deberán elegir una de cada tipo. Haz clic en 🖼️ para asignar una imagen.</div>
                         <div id="variantesContainer"></div>
                     </div>
-                    <button type="submit" class="btn-primary" style="margin-top: 1.5rem;">Guardar Producto</button>
+                    <button type="submit" class="btn-primary" id="btnGuardarProducto" style="margin-top: 1.5rem;">Guardar Producto</button>
                 </form>
             </div>
         </div>
@@ -1518,7 +1520,7 @@ NOTIFY pgrst_reload_schema;
                         <input type="text" id="categoriaSlug" required>
                         <div class="form-hint">Identificador único en minúsculas y sin espacios. Ej: smartphones-tablets</div>
                     </div>
-                    <button type="submit" class="btn-primary">Guardar Categoría</button>
+                    <button type="submit" class="btn-primary" id="btnGuardarCategoria">Guardar Categoría</button>
                 </form>
             </div>
         </div>
@@ -1707,11 +1709,21 @@ NOTIFY pgrst_reload_schema;
         function cargarConfiguracionAdmin() {
             const heroInput = document.getElementById('heroImageUrl');
             if (heroInput) heroInput.value = configuracion.hero_image_url || '';
+
+            const form = document.getElementById('configForm');
+            const saveBtn = document.getElementById('btnGuardarConfig');
+            saveBtn.disabled = true;
+            saveBtn.title = 'No hay cambios para guardar';
+            form.oninput = () => {
+                saveBtn.disabled = false;
+                saveBtn.title = 'Guardar Cambios';
+            };
         }
 
         async function guardarConfiguracion(event) {
             event.preventDefault();
             const btn = document.getElementById('btnGuardarConfig');
+            const originalText = btn.textContent;
             btn.disabled = true;
             btn.textContent = 'Guardando...';
 
@@ -1725,11 +1737,12 @@ NOTIFY pgrst_reload_schema;
                 
                 mostrarNotificacion('Configuración guardada exitosamente.');
                 await cargarConfiguracion();
+                btn.title = 'No hay cambios para guardar';
             } catch (error) {
                 alert('Error al guardar: ' + error.message);
-            } finally {
                 btn.disabled = false;
-                btn.textContent = 'Guardar Cambios';
+            } finally {
+                btn.textContent = originalText;
             }
         }
 
@@ -2519,8 +2532,18 @@ NOTIFY pgrst_reload_schema;
 
         function abrirModalCategoria() {
             document.getElementById('categoriaModalTitle').textContent = 'Agregar Categoría';
-            document.getElementById('categoriaForm').reset();
+            const form = document.getElementById('categoriaForm');
+            form.reset();
             document.getElementById('categoriaId').value = '';
+            
+            const saveBtn = document.getElementById('btnGuardarCategoria');
+            saveBtn.disabled = true;
+            saveBtn.title = 'No hay cambios para guardar';
+            form.oninput = () => {
+                saveBtn.disabled = false;
+                saveBtn.title = '';
+            };
+            
             document.getElementById('categoriaModal').classList.add('show');
         }
 
@@ -2537,6 +2560,16 @@ NOTIFY pgrst_reload_schema;
                 document.getElementById('categoriaId').value = data.id;
                 document.getElementById('categoriaNombre').value = data.nombre;
                 document.getElementById('categoriaSlug').value = data.slug;
+                
+                const form = document.getElementById('categoriaForm');
+                const saveBtn = document.getElementById('btnGuardarCategoria');
+                saveBtn.disabled = true;
+                saveBtn.title = 'No hay cambios para guardar';
+                form.oninput = () => {
+                    saveBtn.disabled = false;
+                    saveBtn.title = '';
+                };
+                
                 document.getElementById('categoriaModal').classList.add('show');
             } catch (error) {
                 alert('Error al cargar categoría: ' + error.message);
@@ -2605,12 +2638,22 @@ NOTIFY pgrst_reload_schema;
 
         async function abrirModalProducto() {
             document.getElementById('productoModalTitle').textContent = 'Agregar Producto';
-            document.getElementById('productoForm').reset();
+            const form = document.getElementById('productoForm');
+            form.reset();
             document.getElementById('productoId').value = '';
             document.getElementById('productoActivo').checked = true;
             document.getElementById('variantesContainer').innerHTML = '';
             document.getElementById('variantImageFile').value = '';
             llenarSelectorCategoriasProducto();
+            
+            const saveBtn = document.getElementById('btnGuardarProducto');
+            saveBtn.disabled = true;
+            saveBtn.title = 'No hay cambios para guardar';
+            form.oninput = () => {
+                saveBtn.disabled = false;
+                saveBtn.title = '';
+            };
+
             document.getElementById('productoModal').classList.add('show');
         }
 
@@ -2623,6 +2666,8 @@ NOTIFY pgrst_reload_schema;
             try {
                 const { data, error } = await supabaseClient.from('productos').select('*').eq('id', id).single();
                 if (error) throw error;
+                const form = document.getElementById('productoForm');
+                
                 document.getElementById('productoModalTitle').textContent = 'Editar Producto';
                 document.getElementById('productoId').value = data.id;
                 document.getElementById('productoNombre').value = data.nombre;
@@ -2639,6 +2684,15 @@ NOTIFY pgrst_reload_schema;
                 document.getElementById('productoCategoria').value = data.categoria_id;
                 
                 renderizarVariantesForm(data.variantes);
+
+                const saveBtn = document.getElementById('btnGuardarProducto');
+                saveBtn.disabled = true;
+                saveBtn.title = 'No hay cambios para guardar';
+                form.oninput = () => {
+                    saveBtn.disabled = false;
+                    saveBtn.title = '';
+                };
+
                 document.getElementById('productoModal').classList.add('show');
             } catch (error) {
                 alert('Error al cargar producto: ' + error.message);
