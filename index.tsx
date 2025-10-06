@@ -636,37 +636,31 @@ async function realizarPedido() {
         const total = cartParaPedido.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
         const cantidad = cartParaPedido.reduce((sum, item) => sum + item.cantidad, 0);
 
-        const pedidoData = {
-            nombre_cliente: nombre,
-            telefono_cliente: telefono,
-            email_cliente: email,
-            direccion: direccion,
-            productos: cartParaPedido.map(item => {
-                const productoOriginal = productos.find(p => p.id === item.id);
-                const costoUnitario = productoOriginal ? (productoOriginal.precio_costo || 0) : 0;
-                return {
-                    id: item.id,
-                    producto: item.nombre,
-                    marca: item.marca,
-                    cantidad: item.cantidad,
-                    precio_unitario: parseFloat(item.precio),
-                    costo_unitario: costoUnitario,
-                    subtotal: parseFloat(item.precio) * item.cantidad,
-                    variantes: item.variantes_seleccionadas
-                };
-            }),
-            total: total,
-            cantidad_items: cantidad,
-            estado: 'pendiente_pago',
-            latitud: null,
-            longitud: null,
-        };
+        const productosParaPedido = cartParaPedido.map(item => {
+            const productoOriginal = productos.find(p => p.id === item.id);
+            const costoUnitario = productoOriginal ? (productoOriginal.precio_costo || 0) : 0;
+            return {
+                id: item.id,
+                producto: item.nombre,
+                marca: item.marca,
+                cantidad: item.cantidad,
+                precio_unitario: parseFloat(item.precio),
+                costo_unitario: costoUnitario,
+                subtotal: parseFloat(item.precio) * item.cantidad,
+                variantes: item.variantes_seleccionadas
+            };
+        });
 
         const { data: pedidoGuardado, error } = await supabaseClient
-            .from('pedidos')
-            .insert([pedidoData])
-            .select()
-            .single();
+            .rpc('crear_pedido', {
+                nombre_c: nombre,
+                telefono_c: telefono,
+                email_c: email,
+                direccion_c: direccion,
+                productos_c: productosParaPedido,
+                total_c: total,
+                cantidad_c: cantidad
+            });
 
         if (error) throw error;
         
