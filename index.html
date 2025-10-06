@@ -1479,7 +1479,7 @@
                                     <div class="sql-code" style="max-height: 400px; overflow-y: auto; margin-top: 1.5rem; text-align: left;">
 <pre>
 -- ========= SCRIPT DE CONFIGURACIÓN Y SINCRONIZACIÓN v10 (Inventario FEFO por Lotes) =========
-CREATE TABLE IF NOT EXISTS public.categorias (id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY, nombre text NOT NULL, slug text NOT NULL UNIQUE, created_at timestamz DEFAULT now());
+CREATE TABLE IF NOT EXISTS public.categorias (id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY, nombre text NOT NULL, slug text NOT NULL UNIQUE, created_at timestamptz DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.productos (id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY, nombre text NOT NULL, precio numeric NOT NULL DEFAULT 0, created_at timestamptz DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.pedidos (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), numero_pedido serial NOT NULL, fecha_pedido timestamptz DEFAULT now(), nombre_cliente text, telefono_cliente text, email_cliente text, direccion text, productos jsonb, total numeric, cantidad_items integer, estado text, latitud double precision, longitud double precision);
 CREATE TABLE IF NOT EXISTS public.configuracion (clave text PRIMARY KEY, valor text, updated_at timestamptz DEFAULT now());
@@ -1822,6 +1822,7 @@ NOTIFY pgrst_reload_schema;
         const estadosPosibles = ['pendiente_pago', 'pago_confirmado', 'en_preparacion', 'enviado', 'entregado', 'cancelado'];
         let currentVariantPreviewElement = null;
         let isLowStockFilterActive = false;
+        let isSubmittingOrder = false;
         const colorMap = {
             'rojo': '#ef4444', 'azul': '#3b82f6', 'verde': '#22c55e', 'negro': '#1f2937',
             'blanco': '#ffffff', 'amarillo': '#f59e0b', 'naranja': '#f97316', 'morado': '#8b5cf6',
@@ -2405,46 +2406,54 @@ NOTIFY pgrst_reload_schema;
 
         async function realizarPedido(event) {
             event.preventDefault();
+            if (isSubmittingOrder) return; // Previene doble envío
+
+            isSubmittingOrder = true;
             const btnPedido = document.getElementById('btnRealizarPedido');
             btnPedido.disabled = true;
             btnPedido.textContent = 'Procesando pedido...';
             
-            const total = carrito.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
-            const cantidad = carrito.reduce((sum, item) => sum + item.cantidad, 0);
-            const direccion = document.getElementById('direccionCliente').value;
-            let latitud = document.getElementById('latitudCliente').value;
-            let longitud = document.getElementById('longitudCliente').value;
-
-            if (!latitud || !longitud) {
-                const coords = await geocodeDireccion(direccion);
-                if (coords) {
-                    latitud = coords.lat;
-                    longitud = coords.lon;
-                }
-            }
-
-            const pedidoData = {
-                nombre_cliente: document.getElementById('nombreCliente').value,
-                telefono_cliente: document.getElementById('telefonoCliente').value,
-                email_cliente: document.getElementById('emailCliente').value || null,
-                direccion: direccion,
-                productos: carrito.map(item => ({
-                    id: item.id,
-                    producto: item.nombre, 
-                    marca: item.marca, 
-                    cantidad: item.cantidad,
-                    precio_unitario: parseFloat(item.precio),
-                    subtotal: parseFloat(item.precio) * item.cantidad,
-                    variantes: item.variantes_seleccionadas
-                })),
-                total: parseFloat(total),
-                cantidad_items: cantidad,
-                estado: 'pendiente_pago',
-                latitud: latitud ? parseFloat(latitud) : null,
-                longitud: longitud ? parseFloat(longitud) : null,
-            };
-            
             try {
+                const total = carrito.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
+                const cantidad = carrito.reduce((sum, item) => sum + item.cantidad, 0);
+                const direccion = document.getElementById('direccionCliente').value;
+                let latitud = document.getElementById('latitudCliente').value;
+                let longitud = document.getElementById('longitudCliente').value;
+
+                if (!latitud || !longitud) {
+                    const coords = await geocodeDireccion(direccion);
+                    if (coords) {
+                        latitud = coords.lat;
+                        longitud = coords.lon;
+                    }
+                }
+
+                const pedidoData = {
+                    nombre_cliente: document.getElementById('nombreCliente').value,
+                    telefono_cliente: document.getElementById('telefonoCliente').value,
+                    email_cliente: document.getElementById('emailCliente').value || null,
+                    direccion: direccion,
+                    productos: carrito.map(item => {
+                        const productoOriginal = productos.find(p => p.id === item.id);
+                        const costoUnitario = productoOriginal ? (productoOriginal.precio_costo || 0) : 0;
+                        return {
+                            id: item.id,
+                            producto: item.nombre, 
+                            marca: item.marca, 
+                            cantidad: item.cantidad,
+                            precio_unitario: parseFloat(item.precio),
+                            costo_unitario: costoUnitario, // Guardar el costo en el momento de la venta
+                            subtotal: parseFloat(item.precio) * item.cantidad,
+                            variantes: item.variantes_seleccionadas
+                        };
+                    }),
+                    total: parseFloat(total),
+                    cantidad_items: cantidad,
+                    estado: 'pendiente_pago',
+                    latitud: latitud ? parseFloat(latitud) : null,
+                    longitud: longitud ? parseFloat(longitud) : null,
+                };
+            
                 const { data: pedidoGuardado, error } = await supabaseClient
                     .from('pedidos')
                     .insert([pedidoData])
@@ -2470,6 +2479,8 @@ NOTIFY pgrst_reload_schema;
                 alert('Error al realizar el pedido: ' + error.message);
                 btnPedido.disabled = false;
                 btnPedido.textContent = 'Realizar Pedido';
+            } finally {
+                isSubmittingOrder = false; // Liberar el bloqueo
             }
         }
 
@@ -2575,7 +2586,7 @@ NOTIFY pgrst_reload_schema;
                             <div class="form-group" style="margin-top: 1rem;">
                                 <label style="color: var(--text-dark);">Cambiar Estado</label>
                                 <select id="modalStatusSelect" class="status-select ${pedido.estado}" onchange="cambiarEstadoPedido('${pedido.id}', this.value)">
-                                    ${estadosPosibles.map(e => `<option value="${e}" ${e === p.estado ? 'selected' : ''}>${e.replace(/_/g, ' ')}</option>`).join('')}
+                                    ${estadosPosibles.map(e => `<option value="${e}" ${e === pedido.estado ? 'selected' : ''}>${e.replace(/_/g, ' ')}</option>`).join('')}
                                 </select>
                             </div>
                             ${pedido.latitud && pedido.longitud ? `
@@ -2603,6 +2614,11 @@ NOTIFY pgrst_reload_schema;
                     `}).join('')}
                 `;
                 document.getElementById('pedidoModal').classList.add('show');
+                
+                // Ensure the select inside the modal is correctly updated
+                 const modalSelect = document.getElementById('modalStatusSelect');
+                 if (modalSelect) modalSelect.value = pedido.estado;
+
 
             } catch (error) {
                 alert("Error al cargar detalles del pedido: " + error.message);
@@ -3473,8 +3489,7 @@ NOTIFY pgrst_reload_schema;
 
                 pedidosFiltrados.forEach(pedido => {
                     (pedido.productos || []).forEach(item => {
-                        const productoData = productosAdmin.find(p => p.id === item.id);
-                        const costoUnitario = productoData ? (productoData.precio_costo || 0) : 0;
+                        const costoUnitario = item.costo_unitario || 0;
                         const costoTotalItem = costoUnitario * item.cantidad;
                         const gananciaItem = item.subtotal - costoTotalItem;
 
@@ -3527,7 +3542,7 @@ NOTIFY pgrst_reload_schema;
                     <td>${item.cantidad}</td>
                     <td>S/ ${item.total_venta.toFixed(2)}</td>
                     <td>S/ ${item.costo_total.toFixed(2)}</td>
-                    <td style="font-weight: 600; color: ${item.ganancia > 0 ? 'var(--success)' : 'var(--danger)'};">S/ ${item.ganancia.toFixed(2)}</td>
+                    <td style="font-weight: 600; color: ${item.ganancia >= 0 ? 'var(--success)' : 'var(--danger)'};">S/ ${item.ganancia.toFixed(2)}</td>
                 </tr>
             `).join('');
         }
