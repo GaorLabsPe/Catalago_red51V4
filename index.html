@@ -1317,18 +1317,23 @@
                                 <div class="auth-info" style="border-left-color: var(--primary); margin-top: 1rem;">
                                     <p><strong>Script de Sincronización de Base de Datos (Definitivo)</strong></p>
                                     <p class="form-hint" style="margin-top: 0.5rem;">
-                                        Este script se usa una sola vez durante la instalación para crear y configurar todas las tablas necesarias en tu base de datos de Supabase. Si tienes problemas como "columna no encontrada", ejecutar este script completo en el "SQL Editor" de Supabase suele solucionarlo.
+                                        Este script se usa una sola vez durante la instalación para crear y configurar todas las tablas necesarias en tu base de datos de Supabase. Si tienes problemas como "columna no encontrada" o errores al guardar, ejecutar este script completo en el "SQL Editor" de Supabase suele solucionarlo.
                                     </p>
                                     <div class="sql-code" style="max-height: 400px; overflow-y: auto; margin-top: 1.5rem; text-align: left;">
 <pre>
--- ========= SCRIPT DE CONFIGURACIÓN Y SINCRONIZACIÓN v6 (Definitivo) =========
+-- ========= SCRIPT DE CONFIGURACIÓN Y SINCRONIZACIÓN v7 (Soluciona error 'categoria') =========
 CREATE TABLE IF NOT EXISTS public.categorias (id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY, nombre text NOT NULL, slug text NOT NULL UNIQUE, created_at timestamptz DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.productos (id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY, nombre text NOT NULL, precio numeric NOT NULL DEFAULT 0, created_at timestamptz DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.pedidos (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), numero_pedido serial NOT NULL, fecha_pedido timestamptz DEFAULT now(), nombre_cliente text, telefono_cliente text, email_cliente text, direccion text, productos jsonb, total numeric, cantidad_items integer, estado text, latitud double precision, longitud double precision);
 CREATE TABLE IF NOT EXISTS public.configuracion (clave text PRIMARY KEY, valor text, updated_at timestamptz DEFAULT now());
+
+-- Sincronización de la tabla 'productos'
+ALTER TABLE public.productos DROP COLUMN IF EXISTS categoria; -- Elimina columna obsoleta que causa errores.
 ALTER TABLE public.productos ADD COLUMN IF NOT EXISTS marca text, ADD COLUMN IF NOT EXISTS descripcion text, ADD COLUMN IF NOT EXISTS imagen_url text, ADD COLUMN IF NOT EXISTS icon text, ADD COLUMN IF NOT EXISTS badge text, ADD COLUMN IF NOT EXISTS activo boolean DEFAULT true, ADD COLUMN IF NOT EXISTS variantes jsonb, ADD COLUMN IF NOT EXISTS categoria_id bigint;
 ALTER TABLE public.productos DROP CONSTRAINT IF EXISTS productos_categoria_id_fkey; 
 ALTER TABLE public.productos ADD CONSTRAINT productos_categoria_id_fkey FOREIGN KEY (categoria_id) REFERENCES public.categorias(id) ON DELETE SET NULL;
+
+-- Políticas de Seguridad (RLS)
 ALTER TABLE public.categorias ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.productos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pedidos ENABLE ROW LEVEL SECURITY;
@@ -2692,7 +2697,11 @@ NOTIFY pgrst_reload_schema;
                 await cargarProductosAdmin();
                 await cargarProductos();
             } catch (error) {
-                alert('Error al guardar producto: ' + error.message);
+                let friendlyMessage = 'Error al guardar producto: ' + error.message;
+                if (error.message && error.message.includes('violates not-null constraint') && error.message.includes('"categoria"')) {
+                    friendlyMessage += `\n\n[POSIBLE SOLUCIÓN] Este error suele ocurrir si la base de datos es de una versión anterior. Ve a Admin -> Ayuda -> Herramientas para Desarrolladores, copia el script completo y ejecútalo en el "SQL Editor" de tu Supabase para sincronizar la base de datos.`;
+                }
+                alert(friendlyMessage);
             }
         }
 
