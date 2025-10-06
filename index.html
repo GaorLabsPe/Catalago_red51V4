@@ -884,6 +884,14 @@
             border: 1px solid #e0e7ff;
             color: #4338ca;
         }
+        
+        .error-info {
+            background: #fff1f2;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--danger);
+        }
 
         .kpi-container {
             display: grid;
@@ -1249,13 +1257,26 @@
                 <div id="ayudaView" class="admin-view-content" style="display:none;">
                      <div class="admin-section">
                         <div class="admin-header">
-                            <h2>Configuración Inicial de la Base de Datos</h2>
+                            <h2>Ayuda y Configuración</h2>
                         </div>
-                        <div class="auth-info" style="border-left-color: var(--primary);">
-                            <p><strong>¡Atención!</strong> Este script SQL configura tu base de datos. Es seguro ejecutarlo múltiples veces.</p>
-                            <p class="form-hint" style="margin-top: 0.5rem;">Copia <strong>todo el script</strong> y ejecútalo en tu editor de Supabase (Dashboard → SQL Editor → New query). Esto asegura que todas las tablas y relaciones existan correctamente.</p>
+                        
+                        <div class="error-info">
+                            <h4 style="color: var(--danger); margin-bottom: 0.5rem;">¿Error al guardar o cargar productos? ("Could not find... in schema cache")</h4>
+                            <p class="form-hint" style="color: #c2410c;">Este es un problema común de la caché de Supabase. Para solucionarlo, debes forzar una recarga del esquema de tu base de datos. Sigue estos pasos:</p>
+                            <ol class="setup-steps" style="margin-top: 1rem;">
+                                <li>Ve al <strong>Dashboard de Supabase</strong> de tu proyecto.</li>
+                                <li>En el menú de la izquierda, haz clic en el ícono de <strong>API Docs</strong>.</li>
+                                <li>En la lista de "Tables / Views", busca y haz clic en la tabla <strong>productos</strong>.</li>
+                                <li>En la esquina superior derecha, haz clic en el botón <strong>"Reload"</strong>.</li>
+                            </ol>
+                            <img src="https://i.imgur.com/71jY3Lh.png" alt="Instrucción para recargar el esquema de Supabase" style="width: 100%; max-width: 600px; margin-top: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+                        </div>
+                        
+                        <div class="auth-info" style="border-left-color: var(--primary); margin-top: 2rem;">
+                            <p><strong>Script de Base de Datos</strong></p>
+                            <p class="form-hint" style="margin-top: 0.5rem;">Si es la primera vez que configuras la app, o si tienes problemas mayores, ejecuta el siguiente script completo en tu editor SQL de Supabase.</p>
                             
-                            <div class="sql-code" style="max-height: 400px; overflow-y: auto; margin-top: 1.5rem; text-align: left;">
+                            <div class="sql-code" style="max-height: 300px; overflow-y: auto; margin-top: 1.5rem; text-align: left;">
 <pre>
 -- ========= SCRIPT DE CONFIGURACIÓN DE BASE DE DATOS v3 =========
 
@@ -2622,10 +2643,12 @@ CREATE POLICY "Allow full access for authenticated users" ON public.configuracio
         async function guardarProducto(event) {
             event.preventDefault();
             const id = document.getElementById('productoId').value;
+            const categoriaIdValue = document.getElementById('productoCategoria').value;
+
             const producto = {
                 nombre: document.getElementById('productoNombre').value,
                 marca: document.getElementById('productoMarca').value,
-                categoria_id: parseInt(document.getElementById('productoCategoria').value),
+                categoria_id: categoriaIdValue ? parseInt(categoriaIdValue) : null,
                 descripcion: document.getElementById('productoDescripcion').value,
                 precio: parseFloat(document.getElementById('productoPrecio').value),
                 icon: document.getElementById('productoIcon').value || '📦',
@@ -2646,8 +2669,8 @@ CREATE POLICY "Allow full access for authenticated users" ON public.configuracio
                     mostrarNotificacion('✅ Producto creado exitosamente');
                 }
                 cerrarModalProducto();
-                cargarProductosAdmin();
-                cargarProductos();
+                await cargarProductosAdmin();
+                await cargarProductos(); // Recargar productos de la tienda también
             } catch (error) {
                 alert('Error al guardar producto: ' + error.message);
             }
@@ -2660,8 +2683,8 @@ CREATE POLICY "Allow full access for authenticated users" ON public.configuracio
                 const { error } = await supabaseClient.from('productos').delete().eq('id', id);
                 if (error) throw error;
                 mostrarNotificacion('🗑️ Producto eliminado exitosamente');
-                cargarProductosAdmin();
-                cargarProductos();
+                await cargarProductosAdmin();
+                await cargarProductos(); // Recargar productos de la tienda también
             } catch (error) {
                 alert('Error al eliminar producto: ' + error.message);
             }
