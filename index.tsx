@@ -545,7 +545,7 @@ function renderizarCarrito() {
             <span class="cart-total-label">Total:</span>
             <span class="cart-total-amount">S/ ${total.toFixed(2)}</span>
         </div>
-        <form class="checkout-form">
+        <form class="checkout-form" id="checkoutForm">
             <div class="form-group"><label>Nombre Completo</label><input type="text" id="nombreCliente" required></div>
             <div class="form-group"><label>Telefono (sin prefijo +51)</label><input type="tel" id="telefonoCliente" required placeholder="905820448"></div>
             <div class="form-group"><label>Email (Opcional)</label><input type="email" id="emailCliente" placeholder="cliente@ejemplo.com"></div>
@@ -553,8 +553,19 @@ function renderizarCarrito() {
                 <label>Direccion de Entrega</label>
                 <textarea id="direccionCliente" required></textarea>
             </div>
-            <button type="button" class="btn-primary" id="btnRealizarPedido" onclick="realizarPedido()">Realizar Pedido</button>
+            <button type="submit" class="btn-primary" id="btnRealizarPedido">Realizar Pedido</button>
         </form>`;
+    
+    // Attach event listener to the newly created form
+    const form = document.getElementById('checkoutForm');
+    if (form) {
+        form.addEventListener('submit', handlePedidoSubmit);
+    }
+}
+
+function handlePedidoSubmit(event) {
+    event.preventDefault();
+    realizarPedido();
 }
 
 function cambiarCantidad(cartId, cambio) {
@@ -604,7 +615,13 @@ async function realizarPedido() {
 
         if (cartParaPedido.length === 0) {
             mostrarNotificacion('⚠️ Tu carrito está vacío.');
-            return; // Early return, but inside the try block.
+            // We need to release the lock if we return early.
+            isProcessingOrder = false; 
+            if(btnPedido) {
+                btnPedido.disabled = false;
+                btnPedido.textContent = 'Realizar Pedido';
+            }
+            return;
         }
 
         const nombre = (document.getElementById('nombreCliente') as HTMLInputElement).value;
