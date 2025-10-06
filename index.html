@@ -1066,6 +1066,25 @@
             background: var(--light);
         }
 
+        .variant-swatches {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .color-swatch {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid var(--white);
+            box-shadow: 0 0 0 1px var(--border-color);
+            cursor: default;
+            transition: transform 0.2s;
+        }
+        .color-swatch:hover {
+            transform: scale(1.1);
+        }
+
+
         @keyframes highlight-row {
             0% { background-color: #bfdbfe; }
             100% { background-color: transparent; }
@@ -1636,6 +1655,13 @@ NOTIFY pgrst_reload_schema;
         const estadosPosibles = ['pendiente_pago', 'pago_confirmado', 'en_preparacion', 'enviado', 'entregado', 'cancelado'];
         let currentVariantPreviewElement = null;
         let isLowStockFilterActive = false;
+        const colorMap = {
+            'rojo': '#ef4444', 'azul': '#3b82f6', 'verde': '#22c55e', 'negro': '#1f2937',
+            'blanco': '#ffffff', 'amarillo': '#f59e0b', 'naranja': '#f97316', 'morado': '#8b5cf6',
+            'rosa': '#ec4899', 'gris': '#6b7280', 'plata': '#d1d5db', 'dorado': '#ca8a04',
+            'marrón': '#78350f', 'cafe': '#78350f'
+        };
+
 
         async function inicializarSupabase() {
             supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -1889,6 +1915,21 @@ NOTIFY pgrst_reload_schema;
                         imagenPrincipal = primeraOpcionConImagen.imagen_url;
                     }
                 }
+                
+                let variantesHTML = '';
+                if (hasVariants) {
+                    const colorVariant = producto.variantes.find(v => v.nombre.toLowerCase() === 'color');
+                    if (colorVariant && colorVariant.opciones) {
+                        variantesHTML = `<div class="variant-swatches">
+                            ${colorVariant.opciones.map(opcion => {
+                                const colorValue = opcion.valor.toLowerCase();
+                                const cssColor = colorMap[colorValue] || '#e5e7eb'; // Default color
+                                return `<div class="color-swatch" style="background-color: ${cssColor};" title="${opcion.valor}"></div>`;
+                            }).join('')}
+                        </div>`;
+                    }
+                }
+
 
                 return `
                 <div class="product-card">
@@ -1907,6 +1948,7 @@ NOTIFY pgrst_reload_schema;
                         <div class="product-brand">${producto.marca}</div>
                         <p class="product-description">${producto.descripcion}</p>
                         <div style="margin-top: auto; padding-top: 1rem;">
+                            ${variantesHTML}
                             ${producto.stock > 0 && producto.stock <= 10 ? `<div class="product-stock">¡Solo quedan ${producto.stock} en stock!</div>` : ''}
                             <div class="product-price">S/ ${parseFloat(producto.precio).toFixed(2)}</div>
                         </div>
