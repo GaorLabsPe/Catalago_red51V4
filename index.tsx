@@ -31,7 +31,6 @@ let productoSeleccionado = null;
 const estadosPosibles = ['pendiente_pago', 'pago_confirmado', 'en_preparacion', 'enviado', 'entregado', 'cancelado'];
 let currentVariantPreviewElement = null;
 let isLowStockFilterActive = false;
-let isProcessingOrder = false;
 const colorMap = {
     'rojo': '#ef4444', 'azul': '#3b82f6', 'verde': '#22c55e', 'negro': '#1f2937',
     'blanco': '#ffffff', 'amarillo': '#f59e0b', 'naranja': '#f97316', 'morado': '#8b5cf6',
@@ -547,7 +546,7 @@ function renderizarCarrito() {
             <span class="cart-total-label">Total:</span>
             <span class="cart-total-amount">S/ ${total.toFixed(2)}</span>
         </div>
-        <form class="checkout-form" onsubmit="event.preventDefault(); return false;">
+        <form class="checkout-form" onsubmit="realizarPedido(event)">
             <div class="form-group"><label>Nombre Completo</label><input type="text" id="nombreCliente" required></div>
             <div class="form-group"><label>Telefono (sin prefijo +51)</label><input type="tel" id="telefonoCliente" required placeholder="905820448"></div>
             <div class="form-group"><label>Email (Opcional)</label><input type="email" id="emailCliente" placeholder="cliente@ejemplo.com"></div>
@@ -560,7 +559,7 @@ function renderizarCarrito() {
                     <button type="button" class="btn-secondary" style="font-size: 0.9rem;" onclick="seleccionarUbicacionEnMapa()">🗺️ Seleccionar en el mapa</button>
                 </div>
             </div>
-            <button type="button" class="btn-primary" id="btnRealizarPedido" onclick="realizarPedido(event)">Realizar Pedido</button>
+            <button type="submit" class="btn-primary" id="btnRealizarPedido">Realizar Pedido</button>
         </form>`;
 }
 
@@ -653,27 +652,22 @@ window.seleccionarUbicacionEnMapa = seleccionarUbicacionEnMapa;
 async function realizarPedido(event) {
     event.preventDefault();
 
-    if (isProcessingOrder) {
-        console.warn("Submission ignored, an order is already being processed.");
+    const btnPedido = document.getElementById('btnRealizarPedido') as HTMLButtonElement;
+    if (btnPedido.disabled) {
         return;
     }
-
-    const btnPedido = document.getElementById('btnRealizarPedido') as HTMLButtonElement;
-    const cartParaPedido = [...carrito]; // Clonar el carrito para tener una copia segura
+    btnPedido.disabled = true;
+    btnPedido.textContent = 'Procesando pedido...';
+    
+    const cartParaPedido = [...carrito]; 
 
     try {
-        isProcessingOrder = true;
-        btnPedido.disabled = true;
-        btnPedido.textContent = 'Procesando pedido...';
-
         if (cartParaPedido.length === 0) {
             mostrarNotificacion('⚠️ Tu carrito está vacío.');
-            // No es necesario restaurar el carrito, ya que está vacío.
-            // El bloqueo se liberará en `finally`.
+            renderizarCarrito(); // Re-render to re-enable button for another try
             return;
         }
         
-        // Leer todos los datos del formulario ANTES de cualquier operación asíncrona
         const nombre = (document.getElementById('nombreCliente') as HTMLInputElement).value;
         const telefono = (document.getElementById('telefonoCliente') as HTMLInputElement).value;
         const email = (document.getElementById('emailCliente') as HTMLInputElement).value || null;
@@ -681,11 +675,9 @@ async function realizarPedido(event) {
         let latitud = (document.getElementById('latitudCliente') as HTMLInputElement).value;
         let longitud = (document.getElementById('longitudCliente') as HTMLInputElement).value;
 
-        // Acción atómica y crítica: Vaciar el carrito principal.
         carrito = [];
         actualizarContadorCarrito();
 
-        // Operaciones asíncronas se realizan ahora de forma segura
         if (!latitud || !longitud) {
             const coords = await geocodeDireccion(direccion);
             if (coords) {
@@ -741,22 +733,14 @@ async function realizarPedido(event) {
             console.warn('El pedido se guardó, pero falló el envío al webhook:', (webhookError as Error).message);
         }
 
-        // Éxito: Mostrar mensaje de confirmación. El formulario ya no es necesario.
         document.getElementById('cartContent').style.display = 'none';
         document.getElementById('successMessage').style.display = 'block';
 
     } catch (error) {
-        // En caso de error, restaurar el carrito a su estado original.
         carrito = cartParaPedido;
         actualizarContadorCarrito();
         renderizarCarrito(); 
         alert('Error al realizar el pedido: ' + (error as Error).message);
-    
-    } finally {
-        // Este bloque se ejecuta SIEMPRE, garantizando que se libere el bloqueo.
-        isProcessingOrder = false;
-        // No es necesario tocar el botón aquí. En caso de éxito, el formulario desaparece.
-        // En caso de error, `renderizarCarrito()` crea un nuevo botón habilitado.
     }
 }
 window.realizarPedido = realizarPedido;
