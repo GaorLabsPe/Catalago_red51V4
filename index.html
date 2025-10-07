@@ -4,1202 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Red51 Technology - Tienda Online</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        :root {
-            --primary: #7B5C7E; /* Purple from Logo */
-            --secondary: #1B9AA8; /* Teal from Logo */
-            --accent: #10b981;
-            --dark: #1a1a2e;
-            --light: #f3f4f6; /* Lighter Gray BG */
-            --white: #ffffff;
-            --text-dark: #1f2937;
-            --text-light: #6b7280;
-            --success: #10b981;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-            --info: #3b82f6;
-            --border-color: #e5e7eb;
-            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.1);
-        }
-        
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: var(--light);
-            color: var(--text-dark);
-            line-height: 1.6;
-        }
-        
-        .header {
-            background: var(--white);
-            border-bottom: 1px solid var(--border-color);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        
-        .nav-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .logo-container {
-            cursor: pointer;
-            user-select: none;
-        }
-
-        .logo-text {
-            font-size: 1.5rem;
-            font-weight: 800;
-            color: var(--text-dark);
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-        }
-        
-        .logo-red {
-            color: var(--secondary);
-        }
-        
-        .logo-number {
-            color: var(--primary);
-        }
-        
-        .logo-subtitle {
-            font-size: 0.5em;
-            font-weight: 400;
-            letter-spacing: 0.2em;
-            text-transform: uppercase;
-            color: var(--text-dark);
-            display: block;
-            margin-top: -8px;
-        }
-        
-        .nav-links {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-        }
-        
-        .nav-btn {
-            color: var(--text-dark);
-            text-decoration: none;
-            font-weight: 500;
-            transition: color 0.3s;
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 1rem;
-        }
-        
-        .nav-btn:hover {
-            color: var(--secondary);
-        }
-        
-        .cart-btn {
-            position: relative;
-            background: var(--secondary);
-            color: var(--white);
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-        
-        .cart-btn:hover {
-            transform: translateY(-2px);
-            background: #168B97;
-            box-shadow: 0 5px 20px rgba(27, 154, 168, 0.3);
-        }
-        
-        .cart-count {
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            background: var(--danger);
-            color: var(--white);
-            width: 22px;
-            height: 22px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.75rem;
-            font-weight: 700;
-        }
-        
-        .hero {
-            background-size: cover;
-            background-position: center center;
-            background-repeat: no-repeat;
-            color: var(--white);
-            padding: 8rem 2rem;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-            min-height: 60vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .hero::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 1;
-        }
-
-        .hero-content {
-            position: relative;
-            z-index: 2;
-            max-width: 700px;
-        }
-        
-        .hero h1 {
-            font-size: 3.5rem;
-            margin-bottom: 1rem;
-            font-weight: 800;
-        }
-        
-        .hero p {
-            font-size: 1.3rem;
-            opacity: 0.95;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 3rem 2rem;
-        }
-        
-        .category-filter {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 2rem;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-        
-        .filter-btn {
-            padding: 0.75rem 1.5rem;
-            background: var(--white);
-            border: 1px solid var(--border-color);
-            color: var(--text-light);
-            border-radius: 25px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-        
-        .filter-btn:hover, .filter-btn.active {
-            background: var(--primary);
-            color: var(--white);
-            border-color: var(--primary);
-        }
-        
-        .products-section {
-            margin-bottom: 4rem;
-        }
-        
-        .section-title {
-            font-size: 2rem;
-            margin-bottom: 2rem;
-            color: var(--primary);
-            font-weight: 700;
-            text-align: center;
-        }
-        
-        .products-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 2rem;
-        }
-        
-        .product-card {
-            background: var(--white);
-            border-radius: 12px;
-            overflow: hidden;
-            border: 1px solid var(--border-color);
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .product-card:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--shadow-lg);
-        }
-        
-        .product-image {
-            width: 100%;
-            height: 250px;
-            background: var(--light);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 4rem;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .product-image img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        
-        .product-badge {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: rgba(239, 68, 68, 0.95);
-            color: var(--white);
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-        
-        .product-info {
-            padding: 1.5rem;
-            display: flex;
-            flex-direction: column;
-            flex-grow: 1;
-        }
-        
-        .product-category {
-            color: var(--secondary);
-            font-size: 0.85rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            margin-bottom: 0.5rem;
-        }
-        
-        .product-name {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: var(--text-dark);
-            margin-bottom: 0.5rem;
-        }
-        
-        .product-brand {
-            color: var(--text-light);
-            font-size: 0.9rem;
-            margin-bottom: 0.5rem;
-        }
-        
-        .product-description {
-            color: var(--text-light);
-            font-size: 0.9rem;
-            margin-bottom: 1rem;
-            line-height: 1.5;
-        }
-
-        .product-stock {
-            color: var(--warning);
-            font-weight: 600;
-            font-size: 0.9rem;
-            margin-bottom: 0.25rem;
-        }
-        
-        .product-price {
-            font-size: 1.8rem;
-            font-weight: 800;
-            color: var(--primary);
-            margin-bottom: 1rem;
-        }
-        
-        .add-to-cart-btn {
-            width: 100%;
-            background: var(--primary);
-            color: var(--white);
-            padding: 1rem;
-            border: none;
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .add-to-cart-btn:hover {
-            transform: translateY(-2px);
-            background: var(--secondary);
-            box-shadow: 0 5px 20px rgba(27, 154, 168, 0.3);
-        }
-        
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.7);
-            z-index: 1000;
-            backdrop-filter: blur(5px);
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal.show {
-            display: flex;
-        }
-        
-        .modal-content {
-            background: var(--white);
-            max-width: 800px;
-            width: 95%;
-            margin: 2rem auto;
-            border-radius: 16px;
-            max-height: 90vh;
-            overflow-y: auto;
-            border: 1px solid var(--border-color);
-        }
-        
-        .modal-header {
-            padding: 2rem;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            background: var(--white);
-            z-index: 10;
-        }
-        
-        .modal-header h2 {
-            font-size: 1.8rem;
-            color: var(--primary);
-        }
-        
-        .close-btn {
-            background: none;
-            border: none;
-            font-size: 2rem;
-            cursor: pointer;
-            color: var(--text-dark);
-            line-height: 1;
-        }
-        
-        .modal-body {
-            padding: 2rem;
-        }
-        
-        .cart-item {
-            display: flex;
-            gap: 1.5rem;
-            padding: 1.5rem;
-            background: var(--light);
-            border-radius: 12px;
-            margin-bottom: 1rem;
-        }
-        
-        .cart-item-icon {
-            font-size: 3rem;
-            flex-shrink: 0;
-        }
-        
-        .cart-item-info {
-            flex-grow: 1;
-        }
-        
-        .cart-item-name {
-            font-weight: 700;
-            font-size: 1.1rem;
-            color: var(--text-dark);
-            margin-bottom: 0.3rem;
-        }
-        
-        .cart-item-brand {
-            color: #999;
-            font-size: 0.85rem;
-            margin-bottom: 0.3rem;
-        }
-        
-        .cart-item-variants {
-            font-size: 0.85rem;
-            color: var(--text-light);
-            background-color: #e9ecef;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            display: inline-block;
-            margin-top: 0.25rem;
-        }
-
-        .cart-item-price {
-            color: var(--text-light);
-            font-size: 0.95rem;
-        }
-        
-        .cart-item-controls {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-top: 0.5rem;
-        }
-        
-        .qty-btn {
-            background: var(--white);
-            border: 1px solid var(--border-color);
-            color: var(--primary);
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 700;
-            transition: all 0.3s;
-        }
-        
-        .qty-btn:hover {
-            background: var(--primary);
-            color: var(--white);
-        }
-        
-        .qty-display {
-            font-weight: 700;
-            font-size: 1.1rem;
-            min-width: 30px;
-            text-align: center;
-        }
-        
-        .remove-btn {
-            background: none;
-            border: none;
-            color: var(--danger);
-            cursor: pointer;
-            font-size: 0.9rem;
-            text-decoration: underline;
-            margin-left: auto;
-        }
-        
-        .cart-total {
-            margin-top: 2rem;
-            padding: 1.5rem;
-            background: var(--primary);
-            color: var(--white);
-            border-radius: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .cart-total-label {
-            font-size: 1.3rem;
-            font-weight: 600;
-        }
-        
-        .cart-total-amount {
-            font-size: 2rem;
-            font-weight: 800;
-        }
-        
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            color: var(--primary);
-        }
-        
-        .form-group input,
-        .form-group textarea,
-        .form-group select {
-            width: 100%;
-            padding: 1rem;
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            font-size: 1rem;
-            font-family: inherit;
-            transition: border-color 0.3s;
-        }
-        
-        .form-group input:focus,
-        .form-group textarea:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: var(--secondary);
-        }
-        
-        .form-group textarea {
-            resize: vertical;
-            min-height: 100px;
-        }
-
-        .form-hint {
-            font-size: 0.85rem;
-            color: var(--text-light);
-            margin-top: 0.25rem;
-        }
-        
-        .btn-primary {
-            width: 100%;
-            background: var(--secondary);
-            color: var(--white);
-            padding: 1.2rem;
-            border: none;
-            border-radius: 12px;
-            font-weight: 700;
-            font-size: 1.1rem;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            background: #168B97;
-            box-shadow: 0 8px 25px rgba(27, 154, 168, 0.3);
-        }
-        
-        .btn-primary:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-            background: var(--secondary); /* Keep color on disabled */
-            box-shadow: none;
-        }
-        
-        .btn-secondary {
-            background: var(--white);
-            border: 1px solid var(--border-color);
-            color: var(--primary);
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-        
-        .btn-secondary:hover {
-            background: var(--primary);
-            color: var(--white);
-        }
-        
-        .btn-danger {
-            background: var(--danger);
-            color: var(--white);
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.9rem;
-        }
-        
-        .empty-cart {
-            text-align: center;
-            padding: 3rem 2rem;
-            color: #999;
-        }
-        
-        .empty-cart-icon {
-            font-size: 5rem;
-            margin-bottom: 1rem;
-        }
-        
-        .success-message {
-            display: none;
-            text-align: center;
-            padding: 3rem 2rem;
-        }
-        
-        .success-icon {
-            font-size: 5rem;
-            color: var(--success);
-            margin-bottom: 1rem;
-        }
-        
-        .success-message h3 {
-            font-size: 1.8rem;
-            color: var(--primary);
-            margin-bottom: 1rem;
-        }
-        
-        .success-message p {
-            color: var(--text-light);
-            margin-bottom: 2rem;
-        }
-        
-        .admin-section {
-            background: var(--white);
-            padding: 2rem;
-            border-radius: 16px;
-            margin-bottom: 2rem;
-            box-shadow: var(--shadow);
-            border: 1px solid var(--border-color);
-        }
-        
-        .admin-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-
-        .admin-search-container {
-            display: flex;
-            gap: 0.5rem;
-            align-items: center;
-            flex-grow: 1;
-        }
-        
-        .admin-search-container input {
-            width: 100%;
-            max-width: 400px;
-        }
-
-        .admin-actions {
-            display: flex;
-            gap: 0.75rem;
-            flex-wrap: wrap;
-        }
-        
-        .admin-nav {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 2rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid var(--border-color);
-            flex-wrap: wrap;
-        }
-
-        .admin-nav-btn {
-            padding: 0.75rem 1.5rem;
-            background: var(--light);
-            border: 1px solid var(--border-color);
-            color: var(--text-light);
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-
-        .admin-nav-btn.active {
-            background: var(--primary);
-            color: var(--white);
-            border-color: var(--primary);
-        }
-
-
-        .btn-import {
-            background: var(--accent);
-            color: var(--white);
-            padding: 0.75rem 1.25rem;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.95rem;
-            transition: all 0.3s;
-        }
-
-        .btn-import:hover {
-            background: #059669;
-            transform: translateY(-2px);
-        }
-
-        .btn-export {
-            background: #6366f1;
-            color: var(--white);
-            padding: 0.75rem 1.25rem;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.95rem;
-            transition: all 0.3s;
-        }
-
-        .btn-export:hover {
-            background: #4f46e5;
-            transform: translateY(-2px);
-        }
-        
-        .admin-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        .admin-table th, .admin-table td {
-            padding: 1rem;
-            text-align: left;
-            border-bottom: 1px solid var(--border-color);
-        }
-        
-        .admin-table th {
-            background: var(--light);
-            font-weight: 700;
-            color: var(--primary);
-        }
-        
-        .admin-table tbody tr:hover {
-            background: #f9fafb;
-        }
-        
-        .admin-table tbody tr.clickable:hover {
-            cursor: pointer;
-        }
-
-        .table-actions {
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
-        
-        .btn-edit {
-            background: var(--secondary);
-            color: var(--white);
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.9rem;
-        }
-        
-        .btn-lotes {
-            background: var(--primary);
-            color: var(--white);
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.9rem;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 3rem;
-            color: var(--text-light);
-        }
-        
-        .footer {
-            background: var(--dark);
-            color: var(--white);
-            text-align: center;
-            padding: 2.5rem 2rem;
-            margin-top: 4rem;
-        }
-        
-        .footer-logo {
-            font-size: 1.5rem;
-            font-weight: 800;
-            margin-bottom: 0.5rem;
-            color: var(--white);
-        }
-        
-        .login-section {
-            background: var(--white);
-            padding: 2rem;
-            border-radius: 16px;
-            margin-bottom: 2rem;
-            box-shadow: var(--shadow);
-            max-width: 500px;
-            margin: 0 auto;
-        }
-
-        .auth-info {
-            background: #f0f9ff;
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-            border-left: 4px solid var(--secondary);
-        }
-
-        .setup-steps, .sql-code {
-             color: var(--text-light); font-size: 0.9rem;
-        }
-
-        .setup-steps li {
-            margin-bottom: 0.5rem;
-        }
-
-        .sql-code {
-            background: #eef2ff;
-            padding: 1rem;
-            border-radius: 8px;
-            font-family: monospace;
-            white-space: pre-wrap;
-            word-break: break-all;
-            margin-top: 1rem;
-            border: 1px solid #e0e7ff;
-            color: #4338ca;
-        }
-        
-        .error-info {
-            background: #fff1f2;
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-            border-left: 4px solid var(--danger);
-        }
-
-        .kpi-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-        
-        .kpi-card {
-            background: var(--white);
-            padding: 1.5rem;
-            border-radius: 12px;
-            box-shadow: var(--shadow);
-            border: 1px solid var(--border-color);
-            transition: all 0.3s;
-        }
-
-        .kpi-card[onclick]:hover {
-            transform: translateY(-3px);
-            box-shadow: var(--shadow-lg);
-            border-color: var(--secondary);
-        }
-
-        .kpi-card-title {
-            font-size: 1rem;
-            color: var(--text-light);
-            margin-bottom: 0.5rem;
-        }
-
-        .kpi-card-value {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--primary);
-        }
-        
-        .status-select {
-            padding: 0.5rem;
-            border-radius: 8px;
-            border: 1px solid transparent;
-            font-weight: 600;
-            color: var(--white);
-            text-transform: capitalize;
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-            background-position: right 0.5rem center;
-            background-repeat: no-repeat;
-            background-size: 1.2em;
-            padding-right: 2.5em; /* space for the arrow */
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
-            cursor: pointer;
-        }
-
-        .status-select:focus {
-            outline: 2px solid var(--white);
-            outline-offset: -2px;
-        }
-
-        .status-select.pendiente_pago { background-color: var(--warning); }
-        .status-select.pago_confirmado { background-color: var(--info); }
-        .status-select.en_preparacion { background-color: var(--secondary); }
-        .status-select.enviado { background-color: var(--primary); }
-        .status-select.entregado { background-color: var(--success); }
-        .status-select.cancelado { background-color: var(--danger); }
-
-        .pedidos-table tr.row-updated {
-            animation: highlight-row 3s ease-out;
-        }
-
-        .variantes-container {
-            margin-top: 1.5rem;
-            padding-top: 1.5rem;
-            border-top: 1px solid var(--border-color);
-        }
-        .variante-group {
-            background: var(--light);
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-        }
-        .variante-header {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 0.5rem;
-            align-items: center;
-        }
-        .variante-header input {
-            flex-grow: 1;
-        }
-        .opciones-container {
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-            align-items: stretch;
-        }
-        .opciones-container input {
-            border: none;
-            padding: 0.5rem;
-            background: transparent;
-            width: 120px;
-        }
-        .opciones-container input:focus {
-            outline: none;
-        }
-        
-        .opcion-tag-enhanced {
-            background: var(--white);
-            padding: 0.5rem;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-        .opcion-image-preview {
-            width: 40px;
-            height: 40px;
-            border-radius: 6px;
-            background: var(--light);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            overflow: hidden;
-            cursor: pointer;
-            position: relative;
-            flex-shrink: 0;
-        }
-        .opcion-image-preview img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        .opcion-image-preview:hover::after {
-            content: '🖼️';
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.4);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .opcion-details {
-            flex-grow: 1;
-        }
-        .opcion-details span {
-            font-weight: 500;
-        }
-        .opcion-tag-enhanced button {
-            background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--danger); line-height: 1;
-            padding: 0.2rem;
-        }
-
-        #detalleProductoModal .modal-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            max-width: 900px;
-        }
-        #detalleProductoModal .product-image-modal {
-            background: var(--light);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            border-radius: 16px 0 0 16px;
-        }
-         #detalleProductoModal .product-image-modal img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        #ayudaView .help-card {
-            background: var(--white);
-            border-radius: 12px;
-            padding: 2rem;
-            margin-bottom: 1.5rem;
-        }
-
-        #ayudaView h3 {
-            color: var(--primary);
-            margin-bottom: 1rem;
-            border-bottom: 2px solid var(--secondary);
-            padding-bottom: 0.5rem;
-            display: inline-block;
-        }
-
-        #ayudaView p, #ayudaView li {
-            color: var(--text-light);
-            margin-bottom: 0.75rem;
-        }
-        
-        #ayudaView ul, #ayudaView ol {
-            padding-left: 20px;
-        }
-
-        #ayudaView strong {
-            color: var(--text-dark);
-        }
-        
-        #ayudaView details {
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            margin-top: 1rem;
-        }
-        #ayudaView summary {
-            font-weight: 600;
-            cursor: pointer;
-            padding: 1rem;
-            background: var(--light);
-        }
-
-        .variant-swatches {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
-        }
-        .color-swatch {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            border: 2px solid var(--white);
-            box-shadow: 0 0 0 1px var(--border-color);
-            cursor: default;
-            transition: transform 0.2s;
-        }
-        .color-swatch:hover {
-            transform: scale(1.1);
-        }
-
-        .ingreso-stock-modal-content {
-            max-width: 700px;
-        }
-
-        .lote-item {
-            display: grid;
-            gap: 1rem;
-            align-items: center;
-            padding: 1rem;
-            border-radius: 8px;
-            background-color: var(--light);
-            margin-bottom: 0.5rem;
-        }
-        
-        .lote-item > div {
-            font-weight: 500;
-        }
-
-        .fecha-vencimiento.expirado {
-            color: var(--danger);
-            font-weight: 700;
-        }
-        .fecha-vencimiento.proximo-expirar {
-            color: var(--warning);
-            font-weight: 700;
-        }
-        
-        .movimiento-tipo {
-            font-weight: 600;
-        }
-        .movimiento-tipo.ingreso {
-            color: var(--success);
-        }
-        .movimiento-tipo.salida {
-            color: var(--danger);
-        }
-        
-        .location-btn-group {
-            display: flex;
-            gap: 0.5rem;
-            margin-top: 0.5rem;
-        }
-
-        .location-btn {
-            flex: 1;
-            padding: 0.5rem;
-            font-size: 0.8rem;
-        }
-        
-        .map-icon {
-            cursor: pointer;
-            font-size: 1.5rem;
-        }
-
-        #mapModal .modal-content {
-            height: 90vh;
-            max-height: 700px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        #map {
-            flex-grow: 1;
-            border-radius: 0 0 16px 16px;
-        }
-
-        @keyframes highlight-row {
-            0% { background-color: #bfdbfe; }
-            100% { background-color: transparent; }
-        }
-        
-        @media (max-width: 768px) {
-            .hero h1 {
-                font-size: 2.5rem;
-            }
-            
-            .products-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .nav-links {
-                gap: 0.5rem;
-                flex-wrap: wrap;
-            }
-            
-            .modal-content {
-                margin: 0;
-                width: 100%;
-                border-radius: 0;
-                max-height: 100vh;
-            }
-            #detalleProductoModal .modal-content {
-                grid-template-columns: 1fr;
-            }
-            #detalleProductoModal .product-image-modal {
-                height: 300px;
-                 border-radius: 0;
-            }
-            
-            .logo-text {
-                font-size: 1.2rem;
-            }
-            
-            .admin-table {
-                font-size: 0.85rem;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <link rel="stylesheet" href="index.css">
 </head>
 <body>
     <header class="header">
         <nav class="nav-container">
-            <div class="logo-container" onclick="mostrarTienda()">
+            <div class="logo-container" id="logoContainer" style="cursor: pointer;">
                 <div>
                     <div class="logo-text">
                         <span class="logo-red">Red</span><span class="logo-number">51</span>
@@ -1208,9 +19,9 @@
                 </div>
             </div>
             <div class="nav-links">
-                <button class="nav-btn" onclick="mostrarTienda()" id="btnTienda">Tienda</button>
-                <button class="nav-btn" onclick="mostrarAdmin()" id="btnAdmin">Admin</button>
-                <button class="cart-btn" onclick="abrirCarrito()">
+                <button class="nav-btn" id="btnTienda">Tienda</button>
+                <button class="nav-btn" id="btnAdmin">Admin</button>
+                <button class="cart-btn" id="cartBtn">
                     Carrito
                     <span class="cart-count" id="cartCount">0</span>
                 </button>
@@ -1249,8 +60,16 @@
                         <li>Click "Add user" → "Create new user"</li>
                         <li>Ingresa email, contraseña y confirma el email.</li>
                     </ol>
+                    <p style="color: var(--text-light); font-size: 0.9rem; margin-top: 1.5rem; margin-bottom: 1rem;">
+                        <strong>Configuración de Tablas (si aún no lo has hecho):</strong>
+                    </p>
+                    <ol class="setup-steps">
+                        <li>Usa el <strong>SQL Editor</strong> en Supabase para crear las tablas <code>productos</code>, <code>categorias</code>, <code>configuracion</code> y <code>pedidos</code>.</li>
+                        <li>Asegúrate de configurar las <strong>Row Level Security (RLS) Policies</strong> para permitir el acceso.</li>
+                        <li>Para la función de mapa, ejecuta el SQL para añadir <code>latitud</code> y <code>longitud</code> a la tabla <code>pedidos</code>.</li>
+                    </ol>
                 </div>
-                <form id="loginForm" onsubmit="iniciarSesion(event)">
+                <form id="loginForm">
                     <div class="form-group">
                         <label>Email</label>
                         <input type="email" id="emailLogin" required placeholder="admin@red51.com">
@@ -1267,23 +86,20 @@
             <div id="adminPanel" style="display:none;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
                     <span id="adminEmail" style="color: var(--text-light); font-size: 0.9rem;"></span>
-                    <button class="btn-danger" onclick="cerrarSesion()">Cerrar Sesion</button>
+                    <button class="btn-danger" id="logoutBtn">Cerrar Sesion</button>
                 </div>
 
                 <div class="admin-nav">
-                    <button class="admin-nav-btn active" id="navBtnPedidos" onclick="mostrarVistaAdmin('pedidos')">Pedidos</button>
-                    <button class="admin-nav-btn" id="navBtnReportes" onclick="mostrarVistaAdmin('reportes')">Reportes</button>
-                    <button class="admin-nav-btn" id="navBtnInventario" onclick="mostrarVistaAdmin('inventario')">Inventario</button>
-                    <button class="admin-nav-btn" id="navBtnProductos" onclick="navegarAProductos()">Productos</button>
-                    <button class="admin-nav-btn" id="navBtnCategorias" onclick="mostrarVistaAdmin('categorias')">Categorías</button>
-                    <button class="admin-nav-btn" id="navBtnConfig" onclick="mostrarVistaAdmin('config')">Configuración</button>
-                    <button class="admin-nav-btn" id="navBtnAyuda" onclick="mostrarVistaAdmin('ayuda')">Ayuda</button>
+                    <button class="admin-nav-btn active" id="navBtnPedidos" data-view="pedidos">Pedidos</button>
+                    <button class="admin-nav-btn" id="navBtnProductos" data-view="productos">Productos</button>
+                    <button class="admin-nav-btn" id="navBtnCategorias" data-view="categorias">Categorías</button>
+                    <button class="admin-nav-btn" id="navBtnConfig" data-view="config">Configuración</button>
                 </div>
 
                 <div id="pedidosView" class="admin-view-content">
                     <div class="kpi-container">
                         <div class="kpi-card">
-                            <div class="kpi-card-title">Ingresos Totales (Filtrados)</div>
+                            <div class="kpi-card-title">Ingresos Totales</div>
                             <div class="kpi-card-value" id="kpiIngresos">S/ 0.00</div>
                         </div>
                         <div class="kpi-card">
@@ -1294,10 +110,6 @@
                             <div class="kpi-card-title">Pedidos Pendientes</div>
                             <div class="kpi-card-value" id="kpiPendientes">0</div>
                         </div>
-                        <div class="kpi-card" id="kpiBajosStockPedidos" onclick="verProductosBajosStock()" style="cursor: pointer; border-left: 4px solid var(--warning);">
-                            <div class="kpi-card-title">Productos Bajos de Stock</div>
-                            <div class="kpi-card-value">0</div>
-                        </div>
                     </div>
                      <div class="admin-section">
                         <div class="admin-header">
@@ -1305,7 +117,7 @@
                         </div>
                         <div id="pedidosFilterContainer" class="category-filter"></div>
                         <div style="overflow-x: auto;">
-                            <table class="admin-table pedidos-table">
+                            <table class="pedidos-table">
                                 <thead>
                                     <tr>
                                         <th>N° Pedido</th>
@@ -1313,7 +125,6 @@
                                         <th>Cliente</th>
                                         <th>Total</th>
                                         <th>Estado</th>
-                                        <th>Ubicación</th>
                                     </tr>
                                 </thead>
                                 <tbody id="adminPedidosTable"></tbody>
@@ -1322,106 +133,27 @@
                     </div>
                 </div>
 
-                <div id="inventarioView" class="admin-view-content" style="display:none;">
-                    <div id="inventarioDashboard">
-                        <div class="kpi-container">
-                            <div class="kpi-card" style="border-left: 4px solid var(--primary);">
-                                <div class="kpi-card-title">Valor Total del Inventario</div>
-                                <div class="kpi-card-value" id="kpiValorInventario">S/ 0.00</div>
-                            </div>
-                            <div class="kpi-card">
-                                <div class="kpi-card-title">Unidades Totales en Stock</div>
-                                <div class="kpi-card-value" id="kpiUnidadesTotales">0</div>
-                            </div>
-                            <div class="kpi-card" style="border-left: 4px solid var(--warning);">
-                                <div class="kpi-card-title">Productos Bajos de Stock</div>
-                                <div class="kpi-card-value" id="kpiBajosStockInventario">0</div>
-                            </div>
-                            <div class="kpi-card" style="border-left: 4px solid var(--danger);">
-                                <div class="kpi-card-title">Productos Sin Stock</div>
-                                <div class="kpi-card-value" id="kpiSinStock">0</div>
-                            </div>
-                        </div>
-                        <div class="admin-section">
-                            <div class="admin-header">
-                                <h2>Estado del Inventario</h2>
-                                <div class="admin-search-container">
-                                    <input type="text" id="inventorySearchInput" placeholder="Buscar producto..." oninput="renderizarInventario()" class="form-group" style="margin: 0; max-width: 400px; width: 100%;">
-                                </div>
-                                <div class="admin-actions">
-                                    <button class="btn-export" onclick="descargarPlantillaStock()">📥 Descargar Plantilla Stock</button>
-                                    <button class="btn-import" onclick="document.getElementById('importStockFile').click()">📤 Importar Stock</button>
-                                    <input type="file" id="importStockFile" accept=".csv,.xls,.xlsx" style="display:none;" onchange="importarStock(event)">
-                                </div>
-                            </div>
-                            <div style="overflow-x: auto;">
-                                <table class="admin-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Producto</th>
-                                            <th>Stock Total</th>
-                                            <th>Valor de Inventario (Costo)</th>
-                                            <th>Acciones</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="inventarioTableBody"></tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="movimientosView" style="display:none;">
-                        <div class="admin-header">
-                            <div>
-                                <button class="btn-secondary" onclick="mostrarVistaAdmin('inventario')">← Volver al Inventario</button>
-                                <h2 id="movimientosTitle" style="margin-top: 1rem;"></h2>
-                            </div>
-                        </div>
-                        <div class="admin-section">
-                            <div style="overflow-x: auto;">
-                                <table class="admin-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Fecha</th>
-                                            <th>Tipo</th>
-                                            <th>Cantidad</th>
-                                            <th>Stock Resultante</th>
-                                            <th>Usuario</th>
-                                            <th>Referencia (Pedido/Factura)</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="movimientosTableBody"></tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 <div id="productosView" class="admin-view-content" style="display:none;">
                     <div class="admin-section">
                         <div class="admin-header">
-                            <h2>Catálogo de Productos</h2>
-                            <div class="admin-search-container">
-                                <input type="text" id="productSearchInput" placeholder="Buscar por nombre o marca..." oninput="renderizarProductosAdmin()">
-                                <button id="clearProductFilterBtn" class="btn-secondary" style="display: none;" onclick="limpiarFiltroProductos()">Limpiar</button>
-                            </div>
+                            <h2>Gestion de Productos</h2>
                             <div class="admin-actions">
-                                <button class="btn-export" onclick="descargarPlantilla()">📥 Descargar Plantilla XLS</button>
-                                <button class="btn-import" onclick="document.getElementById('importFile').click()">📤 Importar Archivo</button>
-                                <input type="file" id="importFile" accept=".csv,.xls,.xlsx" style="display:none;" onchange="importarProductos(event)">
-                                <button class="btn-secondary" onclick="abrirModalProducto()">+ Agregar Producto</button>
+                                <button class="btn-export" id="downloadCsvBtn">📥 Descargar Plantilla CSV</button>
+                                <button class="btn-import" id="importCsvBtn">📤 Importar CSV</button>
+                                <input type="file" id="importFile" accept=".csv" style="display:none;">
+                                <button class="btn-secondary" id="addProductBtn">+ Agregar Producto</button>
                             </div>
                         </div>
-                        <h3 id="productFilterTitle" class="section-title" style="font-size: 1.2rem; text-align: left; margin-bottom: 1rem; display: none;"></h3>
                         <div style="overflow-x: auto;">
-                            <table class="admin-table products-table">
+                            <table class="products-table">
                                 <thead>
                                     <tr>
                                         <th>Imagen</th>
+                                        <th>Icon</th>
                                         <th>Nombre</th>
+                                        <th>Marca</th>
                                         <th>Categoria</th>
-                                        <th>Precio Venta</th>
-                                        <th>Variantes</th>
+                                        <th>Precio</th>
                                         <th>Estado</th>
                                         <th>Acciones</th>
                                     </tr>
@@ -1436,10 +168,10 @@
                      <div class="admin-section">
                         <div class="admin-header">
                             <h2>Gestión de Categorías</h2>
-                            <button class="btn-secondary" onclick="abrirModalCategoria()">+ Agregar Categoría</button>
+                            <button class="btn-secondary" id="addCategoryBtn">+ Agregar Categoría</button>
                         </div>
                          <div style="overflow-x: auto;">
-                            <table class="admin-table categories-table">
+                            <table class="categories-table">
                                 <thead>
                                     <tr>
                                         <th>Nombre</th>
@@ -1452,167 +184,13 @@
                         </div>
                     </div>
                 </div>
-                
-                <div id="reportesView" class="admin-view-content" style="display:none;">
-                    <div class="admin-nav" id="reportesNav" style="margin-bottom: 0; border-bottom: none;">
-                        <button class="admin-nav-btn active" id="navBtnResumenVentas" onclick="mostrarSubVistaReporte('resumen')">Resumen de Ventas</button>
-                        <button class="admin-nav-btn" id="navBtnVentasProducto" onclick="mostrarSubVistaReporte('porProducto')">Ventas por Producto</button>
-                        <button class="admin-nav-btn" id="navBtnCompras" onclick="mostrarSubVistaReporte('compras')">Historial de Compras</button>
-                    </div>
-
-                    <!-- Reporte: Resumen de Ventas -->
-                    <div id="reporteResumenView" class="reporte-subview">
-                        <div class="admin-section">
-                            <div class="admin-header" style="align-items: flex-end;">
-                                <h2>Reporte de Ventas y Ganancias</h2>
-                                <div class="admin-actions">
-                                    <button class="btn-export" onclick="exportarReporteExcel()">📊 Exportar a Excel</button>
-                                </div>
-                            </div>
-                            <div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; align-items: flex-end;">
-                                <div class="form-group" style="margin: 0;">
-                                    <label>Desde</label>
-                                    <input type="date" id="reporteFechaInicio">
-                                </div>
-                                <div class="form-group" style="margin: 0;">
-                                    <label>Hasta</label>
-                                    <input type="date" id="reporteFechaFin">
-                                </div>
-                                <button class="btn-primary" style="width: auto; padding: 1rem 2rem;" onclick="generarReporteVentas()">Generar Reporte</button>
-                            </div>
-                        </div>
-                        
-                        <div class="kpi-container">
-                            <div class="kpi-card">
-                                <div class="kpi-card-title">Ingresos Totales (Venta)</div>
-                                <div class="kpi-card-value" id="reporteKpiIngresos">S/ 0.00</div>
-                            </div>
-                            <div class="kpi-card">
-                                <div class="kpi-card-title">Costo Total de Ventas</div>
-                                <div class="kpi-card-value" id="reporteKpiCosto">S/ 0.00</div>
-                            </div>
-                            <div class="kpi-card" style="border-left: 4px solid var(--success);">
-                                <div class="kpi-card-title">Ganancia Bruta</div>
-                                <div class="kpi-card-value" id="reporteKpiGanancia">S/ 0.00</div>
-                            </div>
-                            <div class="kpi-card" style="border-left: 4px solid var(--info);">
-                                <div class="kpi-card-title">Margen de Ganancia</div>
-                                <div class="kpi-card-value" id="reporteKpiMargen">0.00 %</div>
-                            </div>
-                        </div>
-
-                        <div class="admin-section">
-                            <div style="overflow-x: auto;">
-                                <table class="admin-table reportes-table">
-                                    <thead>
-                                        <tr>
-                                            <th>N° Pedido</th>
-                                            <th>Fecha</th>
-                                            <th>Cliente</th>
-                                            <th>Producto</th>
-                                            <th>Cant.</th>
-                                            <th>Total Venta</th>
-                                            <th>Costo Total</th>
-                                            <th>Ganancia</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="reportesTableBody">
-                                        <tr><td colspan="8" style="text-align: center; padding: 2rem;">Selecciona un rango de fechas y genera un reporte.</td></tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Reporte: Ventas por Producto -->
-                    <div id="reportePorProductoView" class="reporte-subview" style="display:none;">
-                        <div class="admin-section">
-                            <div class="admin-header" style="align-items: flex-end;">
-                                <h2>Reporte de Ventas por Producto</h2>
-                            </div>
-                            <div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; align-items: flex-end;">
-                                <div class="form-group" style="flex-grow: 1; min-width: 250px; margin:0;">
-                                    <label>Producto</label>
-                                    <select id="reporteProductoSelect"><option>Cargando productos...</option></select>
-                                </div>
-                                <div class="form-group" style="margin: 0;">
-                                    <label>Desde</label>
-                                    <input type="date" id="reporteProductoFechaInicio">
-                                </div>
-                                <div class="form-group" style="margin: 0;">
-                                    <label>Hasta</label>
-                                    <input type="date" id="reporteProductoFechaFin">
-                                </div>
-                                <button class="btn-primary" style="width: auto; padding: 1rem 2rem;" onclick="generarReporteVentasPorProducto()">Generar Reporte</button>
-                            </div>
-                        </div>
-                        <div class="admin-section">
-                             <div style="overflow-x: auto;">
-                                <table class="admin-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Fecha</th>
-                                            <th>N° Pedido</th>
-                                            <th>Cliente</th>
-                                            <th>Cantidad Vendida</th>
-                                            <th>Total Venta</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="reporteVentasPorProductoTableBody">
-                                        <tr><td colspan="5" style="text-align: center; padding: 2rem;">Selecciona un producto y rango de fechas.</td></tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Reporte: Historial de Compras -->
-                    <div id="reporteComprasView" class="reporte-subview" style="display:none;">
-                        <div class="admin-section">
-                            <div class="admin-header" style="align-items: flex-end;">
-                                <h2>Historial de Compras (Ingresos de Stock)</h2>
-                            </div>
-                            <div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; align-items: flex-end;">
-                                <div class="form-group" style="margin: 0;">
-                                    <label>Desde</label>
-                                    <input type="date" id="reporteComprasFechaInicio">
-                                </div>
-                                <div class="form-group" style="margin: 0;">
-                                    <label>Hasta</label>
-                                    <input type="date" id="reporteComprasFechaFin">
-                                </div>
-                                <button class="btn-primary" style="width: auto; padding: 1rem 2rem;" onclick="generarReporteCompras()">Generar Reporte</button>
-                            </div>
-                        </div>
-                        <div class="admin-section">
-                             <div style="overflow-x: auto;">
-                                <table class="admin-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Fecha Ingreso</th>
-                                            <th>Producto</th>
-                                            <th>Cantidad</th>
-                                            <th>N° Factura/Comprobante</th>
-                                            <th>Proveedor</th>
-                                            <th>Registrado por</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="reporteComprasTableBody">
-                                        <tr><td colspan="6" style="text-align: center; padding: 2rem;">Selecciona un rango de fechas para ver el historial de compras.</td></tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
 
                 <div id="configView" class="admin-view-content" style="display:none;">
                      <div class="admin-section">
                         <div class="admin-header">
                             <h2>Personalización de la Tienda</h2>
                         </div>
-                        <form id="configForm" onsubmit="guardarConfiguracion(event)">
+                        <form id="configForm">
                             <div class="form-group">
                                 <label for="heroImageUrl">URL de la Imagen Principal (Hero)</label>
                                 <input type="url" id="heroImageUrl" placeholder="https://ejemplo.com/imagen.jpg">
@@ -1622,228 +200,39 @@
                         </form>
                     </div>
                 </div>
-
-                <div id="ayudaView" class="admin-view-content" style="display:none;">
-                    <div class="admin-header" style="margin-bottom: 0;">
-                        <h2>Centro de Ayuda</h2>
-                    </div>
-                    <div class="help-card">
-                        <h3>🚀 Guía de Inicio Rápido</h3>
-                        <p>¡Bienvenido al panel de control de tu tienda! Sigue estos pasos para poner todo en marcha:</p>
-                        <ol>
-                            <li><strong>Crea tus Categorías:</strong> Ve a la pestaña <strong>"Categorías"</strong> y añade las secciones para tus productos (ej: Laptops, Accesorios, Smartphones).</li>
-                            <li><strong>Añade tus Productos:</strong> En la pestaña <strong>"Productos"</strong>, haz clic en "+ Agregar Producto". Aquí podrás definir si un producto requiere seguimiento por lotes con la nueva casilla <strong>"Gestionar por Lotes"</strong>.</li>
-                            <li><strong>Gestiona el Inventario:</strong> Ve al módulo de <strong>"Inventario"</strong>. Desde allí, puedes registrar nuevos ingresos de stock. Si un producto no es gestionado por lotes, el formulario será más simple y solo pedirá la cantidad.</li>
-                            <li><strong>Analiza tus Ventas:</strong> En la nueva pestaña <strong>"Reportes"</strong>, puedes explorar el resumen de ganancias, el historial de ventas por cada producto o el registro de todas tus compras.</li>
-                            <li><strong>Gestiona tus Pedidos:</strong> Cuando recibas una venta, aparecerá en la pestaña <strong>"Pedidos"</strong>. Al cambiar el estado a "Pago Confirmado" o "En Preparación", el stock se descontará automáticamente.</li>
-                        </ol>
-                    </div>
-                    <div class="help-card">
-                        <h3>🤔 Preguntas Frecuentes (FAQ)</h3>
-                        <ul>
-                            <li>
-                                <strong>¿Para qué sirve la opción "Gestionar por Lotes"?</strong>
-                                <p>Esta opción te da flexibilidad. Para productos de alto valor, electrónicos con número de serie o productos con fecha de vencimiento, mantenla activada para una trazabilidad completa. Para productos más simples como cables, fundas o accesorios, puedes desactivarla. Al hacerlo, el formulario para ingresar stock se simplificará y no te pedirá un número de lote, agilizando el proceso.</p>
-                            </li>
-                            <li>
-                                <strong>¿Qué es el nuevo Módulo de Reportes?</strong>
-                                <p>Es un centro de análisis que centraliza la información clave de tu negocio. Te permite ver no solo tus ganancias generales, sino también desglosar las ventas por producto para ver cuáles son tus estrellas, y auditar todas tus compras para tener un control total de la trazabilidad de tu inventario.</p>
-                            </li>
-                             <li>
-                                <strong>¿Cómo añado stock ahora?</strong>
-                                <p>El proceso es el mismo: ve al módulo <strong>"Inventario"</strong>, busca el producto y haz clic en <strong>"Registrar Ingreso"</strong>. La única diferencia es que el formulario se adaptará automáticamente dependiendo de si el producto gestiona lotes o no.</p>
-                            </li>
-                            <li>
-                                <strong>¿Para qué sirve el Historial de Movimientos?</strong>
-                                <p>Es tu registro de auditoría. Te permite responder preguntas como: "¿Quién ingresó este lote?", "¿Con qué factura se compró?", "¿En qué pedido se vendió esta unidad?". Esto te da un control total y visibilidad sobre tu inventario, ayudándote a prevenir pérdidas y a gestionar tu negocio de forma más profesional.</p>
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="help-card">
-                         <details open>
-                            <summary>🛠️ Herramientas para Desarrolladores y Solución de Problemas</summary>
-                            <div style="padding-top: 1rem;">
-                                <div class="error-info" style="border-left-color: var(--danger); background: #fee2e2; margin-bottom: 1rem;">
-                                    <h4 style="color: #991b1b; margin-bottom: 0.5rem; font-size: 1.2rem;">
-                                        🚨 ¡ACCIÓN OBLIGATORIA! Ejecuta este Script para Solucionar Errores
-                                    </h4>
-                                    <p class="form-hint" style="margin-top: 0.5rem; color: #7f1d1d;">
-                                        Para que la creación de pedidos y los webhooks funcionen, <strong>ES INDISPENSABLE</strong> que ejecutes el siguiente script en tu base de datos.
-                                    </p>
-                                    <p class="form-hint" style="margin-top: 0.5rem; color: #7f1d1d;">
-                                        Copia el script completo de abajo, ve al <strong>"SQL Editor"</strong> en tu proyecto de Supabase, pégalo y haz clic en <strong>"RUN"</strong>. Esto solucionará el error <strong>"Could not find the function public.crear_pedido"</strong>. Es seguro y no borrará tus datos.
-                                    </p>
-                                </div>
-                                <div class="sql-code" style="max-height: 400px; overflow-y: auto; text-align: left;">
-<pre>
--- ========= SCRIPT DE CONFIGURACIÓN Y SINCRONIZACIÓN v14 (Función Segura para Webhook + Ubicación) =========
-CREATE TABLE IF NOT EXISTS public.categorias (id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY, nombre text NOT NULL, slug text NOT NULL UNIQUE, created_at timestamz DEFAULT now());
-CREATE TABLE IF NOT EXISTS public.productos (id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY, nombre text NOT NULL, precio numeric NOT NULL DEFAULT 0, created_at timestamptz DEFAULT now());
-CREATE TABLE IF NOT EXISTS public.pedidos (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), numero_pedido serial NOT NULL, fecha_pedido timestamptz DEFAULT now(), nombre_cliente text, telefono_cliente text, email_cliente text, direccion text, productos jsonb, total numeric, cantidad_items integer, estado text, latitud double precision, longitud double precision);
-CREATE TABLE IF NOT EXISTS public.configuracion (clave text PRIMARY KEY, valor text, updated_at timestamptz DEFAULT now());
-CREATE TABLE IF NOT EXISTS public.lotes_inventario (id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY, producto_id bigint NOT NULL, numero_lote text, fecha_vencimiento date, cantidad integer NOT NULL DEFAULT 0, created_at timestamptz DEFAULT now(), CONSTRAINT lotes_inventario_producto_id_fkey FOREIGN KEY (producto_id) REFERENCES public.productos(id) ON DELETE CASCADE);
-DO $$ BEGIN
-    CREATE TYPE public.tipo_movimiento_enum AS ENUM ('INGRESO_COMPRA', 'SALIDA_VENTA', 'AJUSTE_MANUAL');
-EXCEPTION
-    WHEN duplicate_object THEN null;
-END $$;
-CREATE TABLE IF NOT EXISTS public.movimientos_inventario (id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY, producto_id bigint NOT NULL, lote_id bigint, tipo_movimiento tipo_movimiento_enum NOT NULL, cantidad integer NOT NULL, stock_resultante integer NOT NULL, fecha_movimiento timestamptz DEFAULT now(), usuario_email text, referencia_id text, proveedor text, CONSTRAINT movimientos_inventario_producto_id_fkey FOREIGN KEY (producto_id) REFERENCES public.productos(id) ON DELETE CASCADE, CONSTRAINT movimientos_inventario_lote_id_fkey FOREIGN KEY (lote_id) REFERENCES public.lotes_inventario(id) ON DELETE SET NULL);
-
--- Sincronización de la tabla 'productos'
-ALTER TABLE public.productos DROP COLUMN IF EXISTS categoria;
-ALTER TABLE public.productos ADD COLUMN IF NOT EXISTS marca text, ADD COLUMN IF NOT EXISTS descripcion text, ADD COLUMN IF NOT EXISTS imagen_url text, ADD COLUMN IF NOT EXISTS icon text, ADD COLUMN IF NOT EXISTS badge text, ADD COLUMN IF NOT EXISTS activo boolean DEFAULT true, ADD COLUMN IF NOT EXISTS variantes jsonb, ADD COLUMN IF NOT EXISTS categoria_id bigint, ADD COLUMN IF NOT EXISTS stock integer NOT NULL DEFAULT 0, ADD COLUMN IF NOT EXISTS precio_costo numeric NOT NULL DEFAULT 0, ADD COLUMN IF NOT EXISTS gestiona_lotes boolean DEFAULT true;
-ALTER TABLE public.productos DROP CONSTRAINT IF EXISTS productos_categoria_id_fkey; 
-ALTER TABLE public.productos ADD CONSTRAINT productos_categoria_id_fkey FOREIGN KEY (categoria_id) REFERENCES public.categorias(id) ON DELETE SET NULL;
-
--- Sincronización de la tabla 'pedidos'
-ALTER TABLE public.pedidos ADD COLUMN IF NOT EXISTS stock_descontado boolean DEFAULT false NOT NULL;
-ALTER TABLE public.pedidos ADD COLUMN IF NOT EXISTS latitud double precision;
-ALTER TABLE public.pedidos ADD COLUMN IF NOT EXISTS longitud double precision;
-
--- Políticas de Seguridad (RLS)
-ALTER TABLE public.categorias ENABLE ROW LEVEL SECURITY; ALTER TABLE public.productos ENABLE ROW LEVEL SECURITY; ALTER TABLE public.pedidos ENABLE ROW LEVEL SECURITY; ALTER TABLE public.configuracion ENABLE ROW LEVEL SECURITY; ALTER TABLE public.lotes_inventario ENABLE ROW LEVEL SECURITY; ALTER TABLE public.movimientos_inventario ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Public read access" ON public.categorias; CREATE POLICY "Public read access" ON public.categorias FOR SELECT USING (true);
-DROP POLICY IF EXISTS "Public read access" ON public.productos; CREATE POLICY "Public read access" ON public.productos FOR SELECT USING (true);
-DROP POLICY IF EXISTS "Public read access" ON public.configuracion; CREATE POLICY "Public read access" ON public.configuracion FOR SELECT USING (true);
-DROP POLICY IF EXISTS "Allow public insert" ON public.pedidos; CREATE POLICY "Allow public insert" ON public.pedidos FOR INSERT WITH CHECK (true);
-DROP POLICY IF EXISTS "Allow full access for authenticated users" ON public.categorias; CREATE POLICY "Allow full access for authenticated users" ON public.categorias FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
-DROP POLICY IF EXISTS "Allow full access for authenticated users" ON public.productos; CREATE POLICY "Allow full access for authenticated users" ON public.productos FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
-DROP POLICY IF EXISTS "Allow full access for authenticated users" ON public.pedidos; CREATE POLICY "Allow full access for authenticated users" ON public.pedidos FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
-DROP POLICY IF EXISTS "Allow full access for authenticated users" ON public.configuracion; CREATE POLICY "Allow full access for authenticated users" ON public.configuracion FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
-DROP POLICY IF EXISTS "Allow full access for authenticated users" ON public.lotes_inventario; CREATE POLICY "Allow full access for authenticated users" ON public.lotes_inventario FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
-DROP POLICY IF EXISTS "Allow full access for authenticated users" ON public.movimientos_inventario; CREATE POLICY "Allow full access for authenticated users" ON public.movimientos_inventario FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
-
--- FUNCIÓN PARA ACTUALIZAR EL STOCK TOTAL DE UN PRODUCTO
-DROP FUNCTION IF EXISTS public.actualizar_stock_producto(bigint);
-CREATE OR REPLACE FUNCTION public.actualizar_stock_producto(id_producto bigint) RETURNS integer LANGUAGE plpgsql SECURITY DEFINER AS $$
-DECLARE stock_total integer;
-BEGIN
-    SELECT COALESCE(SUM(cantidad), 0) INTO stock_total FROM public.lotes_inventario WHERE producto_id = id_producto AND (fecha_vencimiento IS NULL OR fecha_vencimiento >= CURRENT_DATE);
-    UPDATE public.productos SET stock = stock_total WHERE id = id_producto;
-    RETURN stock_total;
-END; $$;
-GRANT EXECUTE ON FUNCTION public.actualizar_stock_producto(bigint) TO authenticated;
-
--- FUNCIÓN PARA REGISTRAR INGRESO DE STOCK (con auditoría)
-CREATE OR REPLACE FUNCTION public.registrar_ingreso_stock(id_producto bigint, lotes jsonb, comprobante text, prov text) RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
-DECLARE lote_data jsonb; nuevo_lote_id bigint; stock_actualizado integer;
-BEGIN
-    FOR lote_data IN SELECT * FROM jsonb_array_elements(lotes) LOOP
-        INSERT INTO public.lotes_inventario (producto_id, numero_lote, fecha_vencimiento, cantidad)
-        VALUES (id_producto, lote_data->>'numero_lote', (lote_data->>'fecha_vencimiento')::date, (lote_data->>'cantidad')::integer)
-        RETURNING id INTO nuevo_lote_id;
-
-        SELECT public.actualizar_stock_producto(id_producto) INTO stock_actualizado;
-
-        INSERT INTO public.movimientos_inventario (producto_id, lote_id, tipo_movimiento, cantidad, stock_resultante, usuario_email, referencia_id, proveedor)
-        VALUES (id_producto, nuevo_lote_id, 'INGRESO_COMPRA', (lote_data->>'cantidad')::integer, stock_actualizado, auth.email(), comprobante, prov);
-    END LOOP;
-END; $$;
-GRANT EXECUTE ON FUNCTION public.registrar_ingreso_stock(bigint, jsonb, text, text) TO authenticated;
-
--- FUNCIÓN PARA DESCONTAR STOCK (Transaccional, FEFO y con auditoría)
-CREATE OR REPLACE FUNCTION public.descontar_stock_pedido(id_pedido uuid) RETURNS text LANGUAGE plpgsql SECURITY DEFINER AS $$
-DECLARE producto_rec record; lote_rec record; cantidad_a_descontar integer; stock_total_producto integer; stock_actualizado integer; pedido_numero integer;
-BEGIN
-    IF (SELECT stock_descontado FROM public.pedidos WHERE id = id_pedido) THEN RETURN 'El stock para este pedido ya fue descontado previamente.'; END IF;
-    SELECT numero_pedido INTO pedido_numero FROM public.pedidos WHERE id = id_pedido;
-    FOR producto_rec IN SELECT (p->>'id')::bigint AS producto_id, (p->>'cantidad')::integer AS cantidad, (p->>'producto')::text AS nombre_producto FROM public.pedidos, jsonb_array_elements(productos) AS p WHERE id = id_pedido LOOP
-        SELECT stock INTO stock_total_producto FROM public.productos WHERE id = producto_rec.producto_id;
-        IF stock_total_producto &lt; producto_rec.cantidad THEN RAISE EXCEPTION 'Stock insuficiente para el producto: "%". Stock total actual: %, Requerido: %', producto_rec.nombre_producto, stock_total_producto, producto_rec.cantidad; END IF;
-    END LOOP;
-    FOR producto_rec IN SELECT (p->>'id')::bigint AS producto_id, (p->>'cantidad')::integer AS cantidad FROM public.pedidos, jsonb_array_elements(productos) AS p WHERE id = id_pedido LOOP
-        cantidad_a_descontar := producto_rec.cantidad;
-        FOR lote_rec IN SELECT * FROM public.lotes_inventario WHERE producto_id = producto_rec.producto_id AND cantidad > 0 AND (fecha_vencimiento IS NULL OR fecha_vencimiento >= CURRENT_DATE) ORDER BY fecha_vencimiento ASC NULLS LAST LOOP
-            IF cantidad_a_descontar = 0 THEN EXIT; END IF;
-            IF lote_rec.cantidad >= cantidad_a_descontar THEN
-                UPDATE public.lotes_inventario SET cantidad = cantidad - cantidad_a_descontar WHERE id = lote_rec.id;
-                SELECT public.actualizar_stock_producto(producto_rec.producto_id) INTO stock_actualizado;
-                INSERT INTO public.movimientos_inventario (producto_id, lote_id, tipo_movimiento, cantidad, stock_resultante, usuario_email, referencia_id) VALUES (producto_rec.producto_id, lote_rec.id, 'SALIDA_VENTA', cantidad_a_descontar * -1, stock_actualizado, auth.email(), 'Pedido #' || pedido_numero);
-                cantidad_a_descontar := 0;
-            ELSE
-                INSERT INTO public.movimientos_inventario (producto_id, lote_id, tipo_movimiento, cantidad, stock_resultante, usuario_email, referencia_id) VALUES (producto_rec.producto_id, lote_rec.id, 'SALIDA_VENTA', lote_rec.cantidad * -1, (SELECT stock FROM public.productos WHERE id = producto_rec.producto_id) - lote_rec.cantidad, auth.email(), 'Pedido #' || pedido_numero);
-                cantidad_a_descontar := cantidad_a_descontar - lote_rec.cantidad;
-                UPDATE public.lotes_inventario SET cantidad = 0 WHERE id = lote_rec.id;
-            END IF;
-        END LOOP;
-        IF cantidad_a_descontar > 0 THEN RAISE EXCEPTION 'Error de concurrencia o stock inconsistente al procesar el producto ID %.', producto_rec.producto_id; END IF;
-        PERFORM public.actualizar_stock_producto(producto_rec.producto_id);
-    END LOOP;
-    UPDATE public.pedidos SET stock_descontado = true WHERE id = id_pedido;
-    RETURN 'Stock descontado exitosamente con estrategia FEFO y auditoría registrada.';
-END; $$;
-GRANT EXECUTE ON FUNCTION public.descontar_stock_pedido(uuid) TO authenticated;
-
--- FUNCIÓN PARA CREAR PEDIDO Y DEVOLVERLO (PARA WEBHOOK)
-CREATE OR REPLACE FUNCTION public.crear_pedido(
-    nombre_c text,
-    telefono_c text,
-    email_c text,
-    direccion_c text,
-    productos_c jsonb,
-    total_c numeric,
-    cantidad_c integer,
-    latitud_c double precision,
-    longitud_c double precision
-) RETURNS json 
-LANGUAGE plpgsql 
-SECURITY DEFINER
-AS $$
-DECLARE
-  nuevo_pedido_record public.pedidos;
-BEGIN
-  INSERT INTO public.pedidos (nombre_cliente, telefono_cliente, email_cliente, direccion, productos, total, cantidad_items, estado, latitud, longitud)
-  VALUES (nombre_c, telefono_c, email_c, direccion_c, productos_c, total_c, cantidad_c, 'pendiente_pago', latitud_c, longitud_c)
-  RETURNING * INTO nuevo_pedido_record;
-  
-  RETURN row_to_json(nuevo_pedido_record);
-END;
-$$;
-GRANT EXECUTE ON FUNCTION public.crear_pedido(text, text, text, text, jsonb, numeric, integer, double precision, double precision) TO anon, authenticated;
-
-
-NOTIFY pgrst_reload_schema;
-</pre>
-                                    </div>
-                                </div>
-                            </div>
-                         </details>
-                    </div>
-                </div>
                 
                 <div id="loadingAdmin" class="loading" style="display:none;">Cargando...</div>
             </div>
         </main>
     </div>
 
-    <div id="cartModal" class="modal">
+    <div id="cartModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="cartModalTitle">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Tu Carrito</h2>
-                <button class="close-btn" onclick="cerrarCarrito()">&times;</button>
+                <h2 id="cartModalTitle">Tu Carrito</h2>
+                <button class="close-btn" id="closeCartBtn" aria-label="Cerrar carrito">&times;</button>
             </div>
-            <div class="modal-body" id="cartModalBody">
+            <div class="modal-body">
                 <div id="cartContent"></div>
                 <div id="successMessage" class="success-message">
                     <div class="success-icon">✓</div>
                     <h3>Pedido Realizado con Exito</h3>
                     <p>Hemos recibido tu pedido. Revisa el estado en tu cuenta o contactanos para coordinar la entrega.</p>
-                    <button class="btn-primary" onclick="cerrarYLimpiar()">Continuar Comprando</button>
+                    <button class="btn-primary" id="continueShoppingBtn">Continuar Comprando</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="productoModal" class="modal">
+    <div id="productoModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="productoModalTitle">
         <div class="modal-content">
             <div class="modal-header">
                 <h2 id="productoModalTitle">Agregar Producto</h2>
-                <button class="close-btn" onclick="cerrarModalProducto()">&times;</button>
+                <button class="close-btn" id="closeProductModalBtn" aria-label="Cerrar modal de producto">&times;</button>
             </div>
             <div class="modal-body">
-                <form id="productoForm" onsubmit="guardarProducto(event)">
+                <form id="productoForm">
                     <input type="hidden" id="productoId">
-                    <input type="file" id="variantImageFile" accept="image/*" style="display:none;" onchange="subirImagenVariante(event)">
                     <div class="form-group">
                         <label>Nombre del Producto</label>
                         <input type="text" id="productoNombre" required>
@@ -1862,20 +251,26 @@ NOTIFY pgrst_reload_schema;
                         <label>Descripcion</label>
                         <textarea id="productoDescripcion" required></textarea>
                     </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                        <div class="form-group">
-                            <label>Precio de Costo (S/)</label>
-                            <input type="number" id="productoCosto" step="0.01" min="0" required value="0">
-                            <div class="form-hint">No es visible para el cliente. Usado para calcular ganancias y valor de inventario.</div>
-                        </div>
-                        <div class="form-group">
-                            <label>Precio de Venta (S/)</label>
-                            <input type="number" id="productoPrecio" step="0.01" min="0" required>
-                        </div>
+                    <div class="form-group">
+                        <label>Precio (S/)</label>
+                        <input type="number" id="productoPrecio" step="0.01" min="0" required>
                     </div>
                     <div class="form-group">
-                        <label>Imagen Principal (URL) - Usada si no hay imágenes en variantes</label>
-                        <input type="url" id="productoImagen" placeholder="https://ejemplo.com/imagen.jpg">
+                        <label>Imagen del Producto</label>
+                        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                            <button type="button" class="btn-upload" id="uploadImageBtn">
+                                📤 Subir Imagen
+                            </button>
+                            <input type="file" id="imageFile" accept="image/*" style="display:none;">
+                            <input type="url" id="productoImagen" placeholder="O pega URL de imagen" style="flex: 1;">
+                        </div>
+                        <div class="form-hint">Sube una imagen desde tu dispositivo o pega una URL externa</div>
+                        <div class="image-preview" id="imagePreview">
+                            <span class="image-preview-text">🖼️</span>
+                            <div class="upload-progress" id="uploadProgress" style="display: none;">
+                                <div class="upload-progress-bar" id="uploadProgressBar" style="width: 0%;"></div>
+                            </div>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>Icono (Emoji) - Se usa si no hay imagen</label>
@@ -1890,38 +285,24 @@ NOTIFY pgrst_reload_schema;
                             <input type="checkbox" id="productoActivo" checked> Producto activo
                         </label>
                     </div>
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="productoGestionLote" checked> Gestionar por Lotes y Vencimiento
-                        </label>
-                        <div class="form-hint">Si se desmarca, no se pedirá lote ni vencimiento al ingresar stock. Ideal para productos sin trazabilidad específica.</div>
-                    </div>
-                    <div class="variantes-container">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <label style="margin: 0;">Variantes (ej: Talla, Color)</label>
-                            <button type="button" class="btn-secondary" style="padding: 0.5rem 1rem;" onclick="agregarTipoVariante()">+ Agregar tipo</button>
-                        </div>
-                         <div class="form-hint">Añade opciones para tu producto. Los clientes deberán elegir una de cada tipo. Haz clic en 🖼️ para asignar una imagen. El stock se gestiona desde el Módulo de Inventario.</div>
-                        <div id="variantesContainer"></div>
-                    </div>
-                    <button type="submit" class="btn-primary" id="btnGuardarProducto" style="margin-top: 1.5rem;">Guardar Producto</button>
+                    <button type="submit" class="btn-primary">Guardar Producto</button>
                 </form>
             </div>
         </div>
     </div>
     
-    <div id="categoriaModal" class="modal">
+    <div id="categoriaModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="categoriaModalTitle">
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
                 <h2 id="categoriaModalTitle">Agregar Categoría</h2>
-                <button class="close-btn" onclick="cerrarModalCategoria()">&times;</button>
+                <button class="close-btn" id="closeCategoryModalBtn" aria-label="Cerrar modal de categoría">&times;</button>
             </div>
             <div class="modal-body">
-                <form id="categoriaForm" onsubmit="guardarCategoria(event)">
+                <form id="categoriaForm">
                     <input type="hidden" id="categoriaId">
                     <div class="form-group">
                         <label for="categoriaNombre">Nombre de la Categoría</label>
-                        <input type="text" id="categoriaNombre" oninput="generarSlug(this.value)" required>
+                        <input type="text" id="categoriaNombre" required>
                         <div class="form-hint">Ej: Smartphones & Tablets</div>
                     </div>
                     <div class="form-group">
@@ -1929,84 +310,33 @@ NOTIFY pgrst_reload_schema;
                         <input type="text" id="categoriaSlug" required>
                         <div class="form-hint">Identificador único en minúsculas y sin espacios. Ej: smartphones-tablets</div>
                     </div>
-                    <button type="submit" class="btn-primary" id="btnGuardarCategoria">Guardar Categoría</button>
+                    <button type="submit" class="btn-primary">Guardar Categoría</button>
                 </form>
             </div>
         </div>
     </div>
 
-    <div id="pedidoModal" class="modal">
+    <div id="pedidoModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="pedidoModalTitle">
         <div class="modal-content">
             <div class="modal-header">
                 <h2 id="pedidoModalTitle">Detalles del Pedido</h2>
-                <button class="close-btn" onclick="cerrarModalPedido()">&times;</button>
+                <button class="close-btn" id="closePedidoModalBtn" aria-label="Cerrar modal de pedido">&times;</button>
             </div>
             <div class="modal-body" id="pedidoModalBody">
                 <!-- Content will be injected by JavaScript -->
             </div>
         </div>
     </div>
-    
-    <div id="detalleProductoModal" class="modal">
-        <div class="modal-content">
-            <div class="product-image-modal" id="detalleProductoImagen"></div>
-            <div class="modal-body">
-                 <button class="close-btn" style="position: absolute; top: 1rem; right: 1rem;" onclick="cerrarModalDetalleProducto()">&times;</button>
-                <h2 id="detalleProductoNombre" style="color: var(--primary); font-size: 2rem; margin-bottom: 0.5rem;"></h2>
-                <div id="detalleProductoMarca" style="color: var(--text-light); margin-bottom: 0.5rem;"></div>
-                <p id="detalleProductoDescripcion" style="margin-bottom: 1.5rem;"></p>
-                <div id="detalleProductoVariantes"></div>
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2rem;">
-                    <span id="detalleProductoPrecio" class="product-price" style="margin: 0; padding: 0;"></span>
-                    <button id="btnAgregarDesdeModal" class="add-to-cart-btn" style="width: auto; padding: 1rem 2rem;" onclick="agregarAlCarritoDesdeModal()">Agregar al Carrito</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div id="ingresoStockModal" class="modal">
-        <div class="modal-content ingreso-stock-modal-content">
-            <div class="modal-header">
-                <h2 id="ingresoStockModalTitle">Registrar Ingreso de Stock</h2>
-                <button class="close-btn" onclick="cerrarModalIngresoStock()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="ingresoStockForm" onsubmit="registrarIngresoStock(event)">
-                    <input type="hidden" id="ingresoProductoId">
-                    <div class="admin-section" style="padding: 1rem; margin: 0; margin-bottom: 2rem;">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                            <div class="form-group" style="margin: 0;">
-                                <label>N° de Factura/Comprobante</label>
-                                <input type="text" id="ingresoComprobante" required>
-                            </div>
-                            <div class="form-group" style="margin: 0;">
-                                <label>Proveedor (Opcional)</label>
-                                <input type="text" id="ingresoProveedor">
-                            </div>
-                        </div>
-                    </div>
 
-                    <h4 id="lotesContainerTitle">Lotes a Ingresar</h4>
-                    <div id="lotesParaIngresarContainer">
-                        <!-- Lotes se añaden aquí dinámicamente -->
-                    </div>
-                    <button type="button" class="btn-secondary" id="btnAddLote" onclick="agregarLoteParaIngresoDesdeBoton()" style="margin-top: 1rem;">+ Añadir otro lote</button>
-                    
-                    <hr style="margin: 2rem 0; border: none; border-top: 1px solid var(--border-color);">
-
-                    <button type="submit" class="btn-primary" style="width: 100%;">Confirmar Ingreso de Stock</button>
-                </form>
-            </div>
-        </div>
-    </div>
-    
-    <div id="mapModal" class="modal">
+    <div id="mapModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="mapModalTitle">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Selecciona la Ubicación</h2>
-                <button class="close-btn" onclick="cerrarModalMapa()">&times;</button>
+                <h2 id="mapModalTitle">Ubicación de Entrega</h2>
+                <button class="close-btn" id="closeMapModalBtn" aria-label="Cerrar modal de mapa">&times;</button>
             </div>
-            <div id="map"></div>
+            <div class="modal-body">
+                <div id="mapa"></div>
+            </div>
         </div>
     </div>
 
@@ -2016,8 +346,7 @@ NOTIFY pgrst_reload_schema;
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <script type="module" src="./index.tsx"></script>
+    <script type="module" src="index.tsx"></script>
 </body>
 </html>
