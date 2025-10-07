@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let configuracion = {};
     let estadoPedidoActual = 'todos';
     let pedidosChannel = null;
+    let isSubmitting = false; // Guard to prevent double submissions
     const estadosPosibles = ['pendiente_pago', 'pago_confirmado', 'en_preparacion', 'enviado', 'entregado', 'cancelado'];
 
     // --- DOM ELEMENTS ---
@@ -98,6 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
         categoryFilter.addEventListener('click', handleCategoryFilter);
         productsGrid.addEventListener('click', handleProductGridClick);
         document.getElementById('cartContent').addEventListener('click', handleCartActions);
+        document.getElementById('cartContent').addEventListener('submit', handleCartSubmit); // Definitive fix for double orders
         document.getElementById('pedidosFilterContainer').addEventListener('click', handlePedidosFilter);
         document.getElementById('adminPedidosTable').addEventListener('click', handlePedidosTableClick);
         document.getElementById('adminPedidosTable').addEventListener('change', handlePedidosTableChange);
@@ -153,6 +155,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (target.matches('#getLocationBtn')) {
             obtenerUbicacionCliente(target);
+        }
+    }
+
+    function handleCartSubmit(event) {
+        if (event.target.matches('.checkout-form')) {
+            realizarPedido(event);
         }
     }
 
@@ -451,12 +459,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 <input type="hidden" id="longitudCliente">
                 <button type="submit" class="btn-primary" id="btnRealizarPedido">Realizar Pedido</button>
             </form>`;
-
-        // Attach the event listener directly to the newly created form
-        const checkoutForm = content.querySelector('.checkout-form');
-        if (checkoutForm) {
-            checkoutForm.addEventListener('submit', realizarPedido);
-        }
     }
 
     function cambiarCantidad(index, cambio) {
@@ -519,6 +521,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     async function realizarPedido(event) {
         event.preventDefault();
+        if (isSubmitting) return; // Failsafe guard
+        isSubmitting = true;
+
         const btnPedido = document.getElementById('btnRealizarPedido');
         btnPedido.disabled = true;
         btnPedido.textContent = 'Procesando pedido...';
@@ -574,6 +579,8 @@ document.addEventListener('DOMContentLoaded', () => {
             mostrarNotificacion('Error al realizar el pedido: ' + error.message, 'error');
             btnPedido.disabled = false;
             btnPedido.textContent = 'Realizar Pedido';
+        } finally {
+            isSubmitting = false; // Unlock submission
         }
     }
 
