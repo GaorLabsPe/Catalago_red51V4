@@ -101,7 +101,6 @@ document.addEventListener('DOMContentLoaded', () => {
         categoryFilter.addEventListener('click', handleCategoryFilter);
         productsGrid.addEventListener('click', handleProductGridClick);
         document.getElementById('cartContent').addEventListener('click', handleCartActions);
-        document.getElementById('cartContent').addEventListener('submit', realizarPedido);
         document.getElementById('pedidosFilterContainer').addEventListener('click', handlePedidosFilter);
         document.getElementById('adminPedidosTable').addEventListener('click', handlePedidosTableClick);
         document.getElementById('adminPedidosTable').addEventListener('change', handlePedidosTableChange);
@@ -428,10 +427,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="cart-item-brand">${item.marca}</div>
                         <div class="cart-item-price">S/ ${parseFloat(item.precio).toFixed(2)} c/u</div>
                         <div class="cart-item-controls">
-                            <button class="qty-btn" data-index="${index}" data-change="-1">-</button>
+                            <button type="button" class="qty-btn" data-index="${index}" data-change="-1">-</button>
                             <span class="qty-display">${item.cantidad}</span>
-                            <button class="qty-btn" data-index="${index}" data-change="1">+</button>
-                            <button class="remove-btn" data-index="${index}">Eliminar</button>
+                            <button type="button" class="qty-btn" data-index="${index}" data-change="1">+</button>
+                            <button type="button" class="remove-btn" data-index="${index}">Eliminar</button>
                         </div>
                     </div>
                     <div style="font-weight: 700; font-size: 1.2rem; color: var(--primary);">
@@ -456,6 +455,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 <input type="hidden" id="longitudCliente">
                 <button type="submit" class="btn-primary" id="btnRealizarPedido">Realizar Pedido</button>
             </form>`;
+
+        // Attach the event listener directly to the newly created form
+        const checkoutForm = content.querySelector('.checkout-form');
+        if (checkoutForm) {
+            checkoutForm.addEventListener('submit', realizarPedido);
+        }
     }
 
     function cambiarCantidad(index, cambio) {
