@@ -156,6 +156,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const index = parseInt(target.dataset.index, 10);
             eliminarItem(index);
         }
+        if (target.matches('#getLocationBtn')) {
+            obtenerUbicacionCliente(target);
+        }
     }
 
     function handlePedidosTableClick(event) {
@@ -444,7 +447,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="form-group"><label>Nombre Completo</label><input type="text" id="nombreCliente" required></div>
                 <div class="form-group"><label>Telefono (sin prefijo +51)</label><input type="tel" id="telefonoCliente" required placeholder="905820448"></div>
                 <div class="form-group"><label>Email (Opcional)</label><input type="email" id="emailCliente" placeholder="cliente@ejemplo.com"></div>
-                <div class="form-group"><label>Direccion de Entrega</label><textarea id="direccionCliente" required></textarea></div>
+                <div class="form-group">
+                    <label>Direccion de Entrega</label><textarea id="direccionCliente" required></textarea>
+                </div>
+                 <button type="button" class="btn-secondary" id="getLocationBtn" style="width:100%; margin-bottom: 1rem;">📍 Usar mi ubicación actual</button>
+                <p id="locationStatus" class="form-hint" style="text-align:center; min-height: 1.2em;"></p>
+                <input type="hidden" id="latitudCliente">
+                <input type="hidden" id="longitudCliente">
                 <button type="submit" class="btn-primary" id="btnRealizarPedido">Realizar Pedido</button>
             </form>`;
     }
@@ -462,6 +471,51 @@ document.addEventListener('DOMContentLoaded', () => {
         renderizarCarrito();
     }
     
+    function obtenerUbicacionCliente(button) {
+        const statusEl = document.getElementById('locationStatus');
+        if (!navigator.geolocation) {
+            statusEl.textContent = 'Geolocalización no es soportada por tu navegador.';
+            statusEl.style.color = 'var(--danger)';
+            return;
+        }
+
+        button.disabled = true;
+        statusEl.textContent = 'Obteniendo ubicación...';
+        statusEl.style.color = 'var(--text-light)';
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                document.getElementById('latitudCliente').value = lat;
+                document.getElementById('longitudCliente').value = lon;
+                statusEl.textContent = '✓ Ubicación obtenida con éxito.';
+                statusEl.style.color = 'var(--success)';
+                button.textContent = 'Ubicación Obtenida';
+            },
+            (error) => {
+                let message = 'Error al obtener la ubicación: ';
+                switch (error.code) {
+                    case error.PERMISSION_DENIED:
+                        message += 'Permiso denegado.';
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        message += 'Información de ubicación no disponible.';
+                        break;
+                    case error.TIMEOUT:
+                        message += 'La solicitud de ubicación ha caducado.';
+                        break;
+                    default:
+                        message += 'Un error desconocido ha ocurrido.';
+                        break;
+                }
+                statusEl.textContent = message;
+                statusEl.style.color = 'var(--danger)';
+                button.disabled = false;
+            }
+        );
+    }
+    
     async function realizarPedido(event) {
         event.preventDefault();
         const btnPedido = document.getElementById('btnRealizarPedido');
@@ -470,7 +524,15 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const total = carrito.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
         const direccion = document.getElementById('direccionCliente').value;
-        const coords = await geocodeDireccion(direccion);
+        const lat = document.getElementById('latitudCliente').value;
+        const lon = document.getElementById('longitudCliente').value;
+        
+        let coords = null;
+        if (lat && lon) {
+            coords = { lat: parseFloat(lat), lon: parseFloat(lon) };
+        } else {
+            coords = await geocodeDireccion(direccion);
+        }
 
         const pedidoData = {
             nombre_cliente: document.getElementById('nombreCliente').value,
@@ -607,7 +669,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div><h4>Resumen del Pedido</h4><p><strong>N° Pedido:</strong> ${pedido.numero_pedido || 'N/A'}</p><p><strong>Fecha:</strong> ${new Date(pedido.fecha_pedido).toLocaleString()}</p><p><strong>Total:</strong> S/ ${parseFloat(pedido.total).toFixed(2)}</p>
                         <div class="form-group" style="margin-top: 1rem;"><label style="color: var(--text-dark);">Cambiar Estado</label>
                         <select id="modalStatusSelect" class="status-select ${pedido.estado}">${estadosPosibles.map(e => `<option value="${e}" ${e === pedido.estado ? 'selected' : ''}>${e.replace(/_/g, ' ')}</option>`).join('')}</select></div>
-                        ${pedido.latitud && pedido.longitud ? `<button class="btn-secondary" id="showMapBtn" style="width: 100%; margin-top: 1rem;">Ver Ubicación en Mapa</button>` : '<p style="margin-top: 1rem; color: var(--text-light);">Ubicación no disponible.</p>'}
+                        ${pedido.latitud && pedido.longitud ? `
+                            <button class="btn-secondary" id="showMapBtn" style="width: 100%; margin-top: 1rem;">Ver Ubicación en Mapa</button>
+                            <button class="btn-primary" id="shareLocationBtn" style="width: 100%; margin-top: 0.5rem;">🔗 Compartir con Delivery</button>
+                        ` : '<p style="margin-top: 1rem; color: var(--text-light);">Ubicación GPS no proporcionada.</p>'}
                     </div>
                 </div>
                 <h4 style="margin-top: 2rem; margin-bottom: 1rem;">Productos</h4>
@@ -616,10 +681,41 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('modalStatusSelect').addEventListener('change', (e) => cambiarEstadoPedido(pedido.id, e.target.value));
             if(pedido.latitud && pedido.longitud) {
                 document.getElementById('showMapBtn').addEventListener('click', () => mostrarMapaPedido(pedido.latitud, pedido.longitud, pedido.nombre_cliente));
+                document.getElementById('shareLocationBtn').addEventListener('click', () => compartirUbicacion(pedido));
             }
             pedidoModal.style.display = 'block';
         } catch (error) {
             mostrarNotificacion("Error al cargar detalles del pedido: " + error.message, 'error');
+        }
+    }
+
+    async function compartirUbicacion(pedido) {
+        if (!pedido.latitud || !pedido.longitud) {
+            mostrarNotificacion("No hay coordenadas para compartir.", "error");
+            return;
+        }
+
+        const url = `https://www.google.com/maps?q=${pedido.latitud},${pedido.longitud}`;
+        const shareData = {
+            title: `Ubicación de Entrega - Pedido #${pedido.numero_pedido}`,
+            text: `Entrega para: ${pedido.nombre_cliente}\nDirección: ${pedido.direccion}\nVer en mapa:`,
+            url: url,
+        };
+
+        try {
+            if (navigator.share) {
+                await navigator.share(shareData);
+                mostrarNotificacion('Ubicación compartida.', 'success');
+            } else {
+                throw new Error('Web Share API not supported');
+            }
+        } catch (err) {
+            // Fallback to clipboard for desktop or unsupported browsers
+            navigator.clipboard.writeText(url).then(() => {
+                mostrarNotificacion('✅ Enlace de Google Maps copiado al portapapeles.', 'info');
+            }).catch(e => {
+                mostrarNotificacion('Error al copiar el enlace.', 'error');
+            });
         }
     }
 
@@ -630,7 +726,7 @@ document.addEventListener('DOMContentLoaded', () => {
              const { error } = await supabaseClient.from('pedidos').update({ estado: nuevoEstado }).eq('id', pedidoId);
             if (error) throw error;
             mostrarNotificacion(`✅ Estado del pedido actualizado`, 'success');
-            const pedidoIndex = pedidos.findIndex(p => p.id === pedidoId);
+            const pedidoIndex = pedidos.findIndex(p => p.id === parseInt(pedidoId, 10));
             if (pedidoIndex !== -1) pedidos[pedidoIndex].estado = nuevoEstado;
             renderizarPedidos();
 
@@ -650,18 +746,22 @@ document.addEventListener('DOMContentLoaded', () => {
             .on('postgres_changes', { event: '*', schema: 'public', table: 'pedidos' }, payload => {
                 const updatedPedido = payload.new;
                 const index = pedidos.findIndex(p => p.id === updatedPedido.id);
-                if (index !== -1) {
-                    pedidos[index] = { ...pedidos[index], ...updatedPedido };
-                    renderizarPedidos();
-                    const row = document.querySelector(`tr[data-id="${updatedPedido.id}"]`);
-                    if (row) {
-                        row.classList.add('row-updated');
-                        setTimeout(() => row.classList.remove('row-updated'), 3000);
-                    }
-                } else {
-                    // New order, add to top
+                if (payload.eventType === 'INSERT') {
                     pedidos.unshift(updatedPedido);
-                    renderizarPedidos();
+                    mostrarNotificacion(`Nuevo pedido de ${updatedPedido.nombre_cliente}!`, 'info');
+                } else if (payload.eventType === 'UPDATE') {
+                     if (index !== -1) {
+                        pedidos[index] = { ...pedidos[index], ...updatedPedido };
+                    }
+                } else if (payload.eventType === 'DELETE') {
+                    pedidos = pedidos.filter(p => p.id !== payload.old.id);
+                }
+                
+                renderizarPedidos();
+                const row = document.querySelector(`tr[data-id="${updatedPedido.id}"]`);
+                if (row && payload.eventType !== 'DELETE') {
+                    row.classList.add('row-updated');
+                    setTimeout(() => row.classList.remove('row-updated'), 3000);
                 }
             })
             .subscribe(status => {
