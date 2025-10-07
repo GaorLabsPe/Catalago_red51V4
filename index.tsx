@@ -105,14 +105,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('adminProductsTable').addEventListener('click', handleProductsTableActions);
         document.getElementById('adminCategoriesTable').addEventListener('click', handleCategoriesTableActions);
 
-        // Definitive fix for double orders: Use event delegation for the submit event.
-        document.getElementById('cartContent').addEventListener('submit', (event) => {
-            if (event.target.matches('.checkout-form')) {
-                event.preventDefault();
-                realizarPedido();
-            }
-        });
-
         // Window-level listener for closing modals
         window.addEventListener('click', (event) => {
             if (event.target === cartModal) cerrarCarrito();
@@ -458,6 +450,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 <input type="hidden" id="longitudCliente">
                 <button type="submit" class="btn-primary" id="btnRealizarPedido">Realizar Pedido</button>
             </form>`;
+        
+        // Attach the event listener directly to the newly created form
+        const checkoutForm = content.querySelector('.checkout-form');
+        if (checkoutForm) {
+            checkoutForm.addEventListener('submit', realizarPedido);
+        }
     }
 
     function cambiarCantidad(index, cambio) {
@@ -518,15 +516,14 @@ document.addEventListener('DOMContentLoaded', () => {
         );
     }
     
-    async function realizarPedido() {
+    async function realizarPedido(event) {
+        event.preventDefault();
         if (isSubmitting) return;
         isSubmitting = true;
 
         const btnPedido = document.getElementById('btnRealizarPedido');
-        if (btnPedido) {
-            btnPedido.disabled = true;
-            btnPedido.textContent = 'Procesando pedido...';
-        }
+        btnPedido.disabled = true;
+        btnPedido.textContent = 'Procesando pedido...';
         
         const total = carrito.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
         const direccion = document.getElementById('direccionCliente').value;
@@ -577,10 +574,8 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('successMessage').style.display = 'block';
         } catch (error) {
             mostrarNotificacion('Error al realizar el pedido: ' + error.message, 'error');
-            if (btnPedido) {
-                btnPedido.disabled = false;
-                btnPedido.textContent = 'Realizar Pedido';
-            }
+            btnPedido.disabled = false;
+            btnPedido.textContent = 'Realizar Pedido';
         } finally {
             isSubmitting = false; // Unlock submission
         }
