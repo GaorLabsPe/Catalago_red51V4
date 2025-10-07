@@ -99,7 +99,6 @@ document.addEventListener('DOMContentLoaded', () => {
         categoryFilter.addEventListener('click', handleCategoryFilter);
         productsGrid.addEventListener('click', handleProductGridClick);
         document.getElementById('cartContent').addEventListener('click', handleCartActions);
-        document.getElementById('cartContent').addEventListener('submit', handleCartSubmit); // Definitive fix for double orders
         document.getElementById('pedidosFilterContainer').addEventListener('click', handlePedidosFilter);
         document.getElementById('adminPedidosTable').addEventListener('click', handlePedidosTableClick);
         document.getElementById('adminPedidosTable').addEventListener('change', handlePedidosTableChange);
@@ -148,18 +147,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const index = parseInt(target.dataset.index, 10);
             const change = parseInt(target.dataset.change, 10);
             cambiarCantidad(index, change);
-        }
-        if (target.matches('.remove-btn')) {
+        } else if (target.matches('.remove-btn')) {
             const index = parseInt(target.dataset.index, 10);
             eliminarItem(index);
-        }
-        if (target.matches('#getLocationBtn')) {
+        } else if (target.matches('#getLocationBtn')) {
             obtenerUbicacionCliente(target);
-        }
-    }
-
-    function handleCartSubmit(event) {
-        if (event.target.matches('.checkout-form')) {
+        } else if (target.matches('#btnRealizarPedido')) {
             realizarPedido(event);
         }
     }
@@ -457,7 +450,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <p id="locationStatus" class="form-hint" style="text-align:center; min-height: 1.2em;"></p>
                 <input type="hidden" id="latitudCliente">
                 <input type="hidden" id="longitudCliente">
-                <button type="submit" class="btn-primary" id="btnRealizarPedido">Realizar Pedido</button>
+                <button type="button" class="btn-primary" id="btnRealizarPedido">Realizar Pedido</button>
             </form>`;
     }
 
@@ -521,7 +514,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     async function realizarPedido(event) {
         event.preventDefault();
-        if (isSubmitting) return; // Failsafe guard
+        if (isSubmitting) return;
         isSubmitting = true;
 
         const btnPedido = document.getElementById('btnRealizarPedido');
