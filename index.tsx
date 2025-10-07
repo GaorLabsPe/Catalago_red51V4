@@ -105,6 +105,14 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('adminProductsTable').addEventListener('click', handleProductsTableActions);
         document.getElementById('adminCategoriesTable').addEventListener('click', handleCategoriesTableActions);
 
+        // Definitive fix for double orders: Use event delegation for the submit event.
+        document.getElementById('cartContent').addEventListener('submit', (event) => {
+            if (event.target.matches('.checkout-form')) {
+                event.preventDefault();
+                realizarPedido();
+            }
+        });
+
         // Window-level listener for closing modals
         window.addEventListener('click', (event) => {
             if (event.target === cartModal) cerrarCarrito();
@@ -448,13 +456,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 <p id="locationStatus" class="form-hint" style="text-align:center; min-height: 1.2em;"></p>
                 <input type="hidden" id="latitudCliente">
                 <input type="hidden" id="longitudCliente">
-                <button type="button" class="btn-primary" id="btnRealizarPedido">Realizar Pedido</button>
+                <button type="submit" class="btn-primary" id="btnRealizarPedido">Realizar Pedido</button>
             </form>`;
-
-        const btnPedido = document.getElementById('btnRealizarPedido');
-        if (btnPedido) {
-            btnPedido.addEventListener('click', realizarPedido);
-        }
     }
 
     function cambiarCantidad(index, cambio) {
@@ -515,14 +518,15 @@ document.addEventListener('DOMContentLoaded', () => {
         );
     }
     
-    async function realizarPedido(event) {
-        event.preventDefault();
+    async function realizarPedido() {
         if (isSubmitting) return;
         isSubmitting = true;
 
-        const btnPedido = event.target;
-        btnPedido.disabled = true;
-        btnPedido.textContent = 'Procesando pedido...';
+        const btnPedido = document.getElementById('btnRealizarPedido');
+        if (btnPedido) {
+            btnPedido.disabled = true;
+            btnPedido.textContent = 'Procesando pedido...';
+        }
         
         const total = carrito.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
         const direccion = document.getElementById('direccionCliente').value;
@@ -573,8 +577,10 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('successMessage').style.display = 'block';
         } catch (error) {
             mostrarNotificacion('Error al realizar el pedido: ' + error.message, 'error');
-            btnPedido.disabled = false;
-            btnPedido.textContent = 'Realizar Pedido';
+            if (btnPedido) {
+                btnPedido.disabled = false;
+                btnPedido.textContent = 'Realizar Pedido';
+            }
         } finally {
             isSubmitting = false; // Unlock submission
         }
