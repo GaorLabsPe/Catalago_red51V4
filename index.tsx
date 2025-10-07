@@ -554,6 +554,19 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const { error } = await supabaseClient.from('pedidos').insert([pedidoData]);
             if (error) throw error;
+
+            // Enviar a webhook de n8n
+            try {
+                const webhookUrl = 'https://webhook.red51.site/webhook/pedidos_red51';
+                await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(pedidoData)
+                });
+            } catch (webhookError) {
+                console.warn('El pedido se guardó, pero el webhook de n8n falló:', webhookError);
+            }
+
             document.getElementById('cartContent').style.display = 'none';
             document.getElementById('successMessage').style.display = 'block';
         } catch (error) {
@@ -671,7 +684,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <select id="modalStatusSelect" class="status-select ${pedido.estado}">${estadosPosibles.map(e => `<option value="${e}" ${e === pedido.estado ? 'selected' : ''}>${e.replace(/_/g, ' ')}</option>`).join('')}</select></div>
                         ${pedido.latitud && pedido.longitud ? `
                             <button class="btn-secondary" id="showMapBtn" style="width: 100%; margin-top: 1rem;">Ver Ubicación en Mapa</button>
-                            <button class="btn-primary" id="shareLocationBtn" style="width: 100%; margin-top: 0.5rem;">🔗 Compartir con Delivery</button>
+                            <button class="btn-primary" id="shareLocationBtn" style="width: 100%; margin-top: 0.5rem;">🗺️ Abrir en Google Maps</button>
                         ` : '<p style="margin-top: 1rem; color: var(--text-light);">Ubicación GPS no proporcionada.</p>'}
                     </div>
                 </div>
@@ -689,34 +702,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function compartirUbicacion(pedido) {
+    function compartirUbicacion(pedido) {
         if (!pedido.latitud || !pedido.longitud) {
             mostrarNotificacion("No hay coordenadas para compartir.", "error");
             return;
         }
 
         const url = `https://www.google.com/maps?q=${pedido.latitud},${pedido.longitud}`;
-        const shareData = {
-            title: `Ubicación de Entrega - Pedido #${pedido.numero_pedido}`,
-            text: `Entrega para: ${pedido.nombre_cliente}\nDirección: ${pedido.direccion}\nVer en mapa:`,
-            url: url,
-        };
-
-        try {
-            if (navigator.share) {
-                await navigator.share(shareData);
-                mostrarNotificacion('Ubicación compartida.', 'success');
-            } else {
-                throw new Error('Web Share API not supported');
-            }
-        } catch (err) {
-            // Fallback to clipboard for desktop or unsupported browsers
-            navigator.clipboard.writeText(url).then(() => {
-                mostrarNotificacion('✅ Enlace de Google Maps copiado al portapapeles.', 'info');
-            }).catch(e => {
-                mostrarNotificacion('Error al copiar el enlace.', 'error');
-            });
-        }
+        
+        mostrarNotificacion('🗺️ Abriendo ubicación en una nueva pestaña...', 'info');
+        window.open(url, '_blank');
     }
 
     function cerrarModalPedido() { pedidoModal.style.display = 'none'; }
