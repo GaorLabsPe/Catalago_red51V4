@@ -152,8 +152,6 @@ document.addEventListener('DOMContentLoaded', () => {
             eliminarItem(index);
         } else if (target.matches('#getLocationBtn')) {
             obtenerUbicacionCliente(target);
-        } else if (target.matches('#btnRealizarPedido')) {
-            realizarPedido(event);
         }
     }
 
@@ -452,6 +450,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 <input type="hidden" id="longitudCliente">
                 <button type="button" class="btn-primary" id="btnRealizarPedido">Realizar Pedido</button>
             </form>`;
+
+        const btnPedido = document.getElementById('btnRealizarPedido');
+        if (btnPedido) {
+            btnPedido.addEventListener('click', realizarPedido);
+        }
     }
 
     function cambiarCantidad(index, cambio) {
@@ -517,7 +520,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isSubmitting) return;
         isSubmitting = true;
 
-        const btnPedido = document.getElementById('btnRealizarPedido');
+        const btnPedido = event.target;
         btnPedido.disabled = true;
         btnPedido.textContent = 'Procesando pedido...';
         
