@@ -392,7 +392,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (itemExistente) itemExistente.cantidad++;
         else carrito.push({ ...producto, cantidad: 1 });
         actualizarContadorCarrito();
-        mostrarNotificacion('✅ Producto agregado al carrito');
+        mostrarNotificacion('✅ Producto agregado al carrito', 'success');
     }
 
     function actualizarContadorCarrito() {
@@ -495,7 +495,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('cartContent').style.display = 'none';
             document.getElementById('successMessage').style.display = 'block';
         } catch (error) {
-            alert('Error al realizar el pedido: ' + error.message);
+            mostrarNotificacion('Error al realizar el pedido: ' + error.message, 'error');
             btnPedido.disabled = false;
             btnPedido.textContent = 'Realizar Pedido';
         }
@@ -529,10 +529,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 .from('configuracion')
                 .upsert({ clave: 'hero_image_url', valor: document.getElementById('heroImageUrl').value }, { onConflict: 'clave' });
             if (error) throw error;
-            mostrarNotificacion('Configuración guardada exitosamente.');
+            mostrarNotificacion('Configuración guardada exitosamente.', 'success');
             await cargarConfiguracion();
         } catch (error) {
-            alert('Error al guardar: ' + error.message);
+            mostrarNotificacion('Error al guardar: ' + error.message, 'error');
         } finally {
             btn.disabled = false;
             btn.textContent = 'Guardar Cambios';
@@ -619,7 +619,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             pedidoModal.style.display = 'block';
         } catch (error) {
-            alert("Error al cargar detalles del pedido: " + error.message);
+            mostrarNotificacion("Error al cargar detalles del pedido: " + error.message, 'error');
         }
     }
 
@@ -629,7 +629,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
              const { error } = await supabaseClient.from('pedidos').update({ estado: nuevoEstado }).eq('id', pedidoId);
             if (error) throw error;
-            mostrarNotificacion(`✅ Estado del pedido actualizado`);
+            mostrarNotificacion(`✅ Estado del pedido actualizado`, 'success');
             const pedidoIndex = pedidos.findIndex(p => p.id === pedidoId);
             if (pedidoIndex !== -1) pedidos[pedidoIndex].estado = nuevoEstado;
             renderizarPedidos();
@@ -640,7 +640,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 modalSelect.value = nuevoEstado;
             }
         } catch(error) {
-            alert("Error al actualizar el estado: " + error.message);
+            mostrarNotificacion("Error al actualizar el estado: " + error.message, 'error');
         }
     }
     
@@ -712,7 +712,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </td>
                 </tr>`).join('');
         } catch (error) {
-            alert('Error al cargar productos: ' + error.message);
+            mostrarNotificacion('Error al cargar productos: ' + error.message, 'error');
         } finally {
             document.getElementById('loadingAdmin').style.display = 'none';
         }
@@ -734,7 +734,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </td>
                 </tr>`).join('');
         } catch (error) {
-            alert('Error al cargar categorías: ' + error.message);
+            mostrarNotificacion('Error al cargar categorías: ' + error.message, 'error');
         }
     }
 
@@ -759,7 +759,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('categoriaSlug').value = data.slug;
             categoriaModal.style.display = 'block';
         } catch (error) {
-            alert('Error al cargar categoría: ' + error.message);
+            mostrarNotificacion('Error al cargar categoría: ' + error.message, 'error');
         }
     }
 
@@ -777,12 +777,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 : await supabaseClient.from('categorias').insert([categoriaData]);
             if (error) throw error;
             
-            mostrarNotificacion(`✅ Categoría ${id ? 'actualizada' : 'creada'}`);
+            mostrarNotificacion(`✅ Categoría ${id ? 'actualizada' : 'creada'}`, 'success');
             cerrarModalCategoria();
             await cargarCategorias();
             cargarCategoriasAdmin();
         } catch (error) {
-            alert('Error al guardar categoría: ' + error.message);
+            mostrarNotificacion('Error al guardar categoría: ' + error.message, 'error');
         }
     }
 
@@ -791,11 +791,11 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const { error } = await supabaseClient.from('categorias').delete().eq('id', id);
             if (error) throw error;
-            mostrarNotificacion('🗑️ Categoría eliminada');
+            mostrarNotificacion('🗑️ Categoría eliminada', 'info');
             await cargarCategorias();
             cargarCategoriasAdmin();
         } catch (error) {
-            alert('Error al eliminar categoría: ' + error.message);
+            mostrarNotificacion('Error al eliminar categoría: ' + error.message, 'error');
         }
     }
 
@@ -849,7 +849,7 @@ document.addEventListener('DOMContentLoaded', () => {
             previewImagen();
             productoModal.style.display = 'block';
         } catch (error) {
-            alert('Error al cargar producto: ' + error.message);
+            mostrarNotificacion('Error al cargar producto: ' + error.message, 'error');
         }
     }
 
@@ -873,12 +873,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? await supabaseClient.from('productos').update(productoData).eq('id', id)
                 : await supabaseClient.from('productos').insert([productoData]);
             if (error) throw error;
-            mostrarNotificacion(`✅ Producto ${id ? 'actualizado' : 'creado'}`);
+            mostrarNotificacion(`✅ Producto ${id ? 'actualizado' : 'creado'}`, 'success');
             cerrarModalProducto();
             await cargarProductosAdmin();
             await cargarProductos();
         } catch (error) {
-            alert('Error al guardar producto: ' + error.message);
+            mostrarNotificacion('Error al guardar producto: ' + error.message, 'error');
         }
     }
 
@@ -887,11 +887,11 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const { error } = await supabaseClient.from('productos').delete().eq('id', id);
             if (error) throw error;
-            mostrarNotificacion('🗑️ Producto eliminado');
+            mostrarNotificacion('🗑️ Producto eliminado', 'info');
             await cargarProductosAdmin();
             await cargarProductos();
         } catch (error) {
-            alert('Error al eliminar producto: ' + error.message);
+            mostrarNotificacion('Error al eliminar producto: ' + error.message, 'error');
         }
     }
 
@@ -907,8 +907,8 @@ document.addEventListener('DOMContentLoaded', () => {
     async function subirImagenCloudinary(event) {
         const file = event.target.files[0];
         if (!file) return;
-        if (!file.type.startsWith('image/')) return alert('Por favor selecciona un archivo de imagen válido');
-        if (file.size > 10 * 1024 * 1024) return alert('La imagen es demasiado grande. Máximo 10MB');
+        if (!file.type.startsWith('image/')) return mostrarNotificacion('Por favor selecciona un archivo de imagen válido', 'error');
+        if (file.size > 10 * 1024 * 1024) return mostrarNotificacion('La imagen es demasiado grande. Máximo 10MB', 'error');
 
         const progressBar = document.getElementById('uploadProgress');
         const progressFill = document.getElementById('uploadProgressBar');
@@ -929,9 +929,9 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('productoImagen').value = data.secure_url;
             previewImagen();
             
-            mostrarNotificacion('🖼️ Imagen subida');
+            mostrarNotificacion('🖼️ Imagen subida', 'success');
         } catch (error) {
-            alert('Error al subir la imagen. Por favor intenta nuevamente.');
+            mostrarNotificacion('Error al subir la imagen. Por favor intenta nuevamente.', 'error');
         } finally {
             progressBar.style.display = 'none';
             event.target.value = ''; // Reset file input
@@ -954,7 +954,7 @@ document.addEventListener('DOMContentLoaded', () => {
         link.download = 'plantilla_productos_red51.csv';
         link.click();
         URL.revokeObjectURL(link.href);
-        mostrarNotificacion('📥 Plantilla CSV descargada.');
+        mostrarNotificacion('📥 Plantilla CSV descargada.', 'info');
     }
 
     async function importarProductos(event) {
@@ -976,18 +976,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     return producto;
                 }).filter(p => p && p.nombre && p.categoria_id && p.precio);
                 
-                if (productosImportados.length === 0) return alert('No se encontraron productos válidos en el CSV');
+                if (productosImportados.length === 0) return mostrarNotificacion('No se encontraron productos válidos en el CSV', 'error');
                 if (!confirm(`Se importarán ${productosImportados.length} productos. ¿Continuar?`)) return;
                 
                 document.getElementById('loadingAdmin').style.display = 'block';
                 const { error } = await supabaseClient.from('productos').insert(productosImportados);
                 if (error) throw error;
                 
-                mostrarNotificacion(`✅ ${productosImportados.length} productos importados`);
+                mostrarNotificacion(`✅ ${productosImportados.length} productos importados`, 'success');
                 await cargarProductosAdmin();
                 await cargarProductos();
             } catch (error) {
-                alert('Error al importar productos: ' + error.message);
+                mostrarNotificacion('Error al importar productos: ' + error.message, 'error');
             } finally {
                 document.getElementById('loadingAdmin').style.display = 'none';
                 event.target.value = '';
@@ -996,10 +996,11 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.readAsText(file);
     }
 
-    function mostrarNotificacion(mensaje) {
+    function mostrarNotificacion(mensaje, tipo = 'info') { // 'info', 'success', 'error'
         const notif = document.createElement('div');
         notif.textContent = mensaje;
-        notif.style.cssText = `position: fixed; top: 100px; right: 20px; background: var(--dark); color: white; padding: 1rem 2rem; border-radius: 10px; box-shadow: var(--shadow-lg); z-index: 10000; font-weight: 600; animation: fadeInOut 3s ease-in-out forwards;`;
+        notif.className = `notification ${tipo}`;
+        
         if (!document.getElementById('notif-style')) {
             const style = document.createElement('style');
             style.id = 'notif-style';

@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Tienda online con catálogo de productos de tecnología y panel de administración en tiempo real.">
     <title>Red51 Technology - Tienda Online</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <link rel="stylesheet" href="index.css">
@@ -42,7 +43,10 @@
                 <div class="category-filter" id="categoryFilter"></div>
                 <h2 class="section-title">Nuestros Productos</h2>
                 <div class="products-grid" id="productsGrid"></div>
-                <div id="loadingProducts" class="loading" style="display:none;">Cargando productos...</div>
+                <div id="loadingProducts" class="loading" style="display:none;">
+                    <div class="spinner"></div>
+                    <p>Cargando productos...</p>
+                </div>
             </section>
         </main>
     </div>
@@ -201,7 +205,10 @@
                     </div>
                 </div>
                 
-                <div id="loadingAdmin" class="loading" style="display:none;">Cargando...</div>
+                <div id="loadingAdmin" class="loading" style="display:none;">
+                    <div class="spinner"></div>
+                    <p>Cargando...</p>
+                </div>
             </div>
         </main>
     </div>

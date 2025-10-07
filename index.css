@@ -807,6 +807,22 @@ body {
     color: var(--text-light);
 }
 
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid var(--border-color);
+    border-top-color: var(--secondary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 .footer {
     background: var(--dark);
     color: var(--white);
@@ -918,6 +934,37 @@ body {
 @keyframes highlight-row {
     0% { background-color: #bfdbfe; }
     100% { background-color: transparent; }
+}
+
+.notification {
+    position: fixed;
+    top: 100px;
+    right: 20px;
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 10px;
+    box-shadow: var(--shadow-lg);
+    z-index: 10000;
+    font-weight: 600;
+    animation: fadeInOut 3s ease-in-out forwards;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.notification.success { background-color: var(--success); }
+.notification.error { background-color: var(--danger); }
+.notification.info { background-color: var(--dark); }
+
+/* Add a visible focus ring for keyboard users */
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible,
+.filter-btn:focus-visible,
+.add-to-cart-btn:focus-visible,
+.nav-btn:focus-visible,
+.close-btn:focus-visible {
+    outline: 3px solid var(--secondary);
+    outline-offset: 2px;
 }
 
 @media (max-width: 768px) {
