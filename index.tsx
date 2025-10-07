@@ -20,7 +20,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let pedidos = [];
     let usuarioActual = null;
     let configuracion = {};
-    let mapa;
     let estadoPedidoActual = 'todos';
     let pedidosChannel = null;
     const estadosPosibles = ['pendiente_pago', 'pago_confirmado', 'en_preparacion', 'enviado', 'entregado', 'cancelado'];
@@ -42,7 +41,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const productoModal = document.getElementById('productoModal');
     const categoriaModal = document.getElementById('categoriaModal');
     const pedidoModal = document.getElementById('pedidoModal');
-    const mapModal = document.getElementById('mapModal');
 
     // Forms
     const loginForm = document.getElementById('loginForm');
@@ -73,7 +71,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('closeProductModalBtn').addEventListener('click', cerrarModalProducto);
         document.getElementById('closeCategoryModalBtn').addEventListener('click', cerrarModalCategoria);
         document.getElementById('closePedidoModalBtn').addEventListener('click', cerrarModalPedido);
-        document.getElementById('closeMapModalBtn').addEventListener('click', cerrarModalMapa);
         document.getElementById('continueShoppingBtn').addEventListener('click', cerrarYLimpiar);
         
         // Forms
@@ -113,7 +110,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (event.target === productoModal) cerrarModalProducto();
             if (event.target === categoriaModal) cerrarModalCategoria();
             if (event.target === pedidoModal) cerrarModalPedido();
-            if (event.target === mapModal) cerrarModalMapa();
         });
     }
 
@@ -688,8 +684,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="form-group" style="margin-top: 1rem;"><label style="color: var(--text-dark);">Cambiar Estado</label>
                         <select id="modalStatusSelect" class="status-select ${pedido.estado}">${estadosPosibles.map(e => `<option value="${e}" ${e === pedido.estado ? 'selected' : ''}>${e.replace(/_/g, ' ')}</option>`).join('')}</select></div>
                         ${pedido.latitud && pedido.longitud ? `
-                            <button class="btn-secondary" id="showMapBtn" style="width: 100%; margin-top: 1rem;">Ver Ubicación en Mapa</button>
-                            <button class="btn-primary" id="shareLocationBtn" style="width: 100%; margin-top: 0.5rem;">🗺️ Abrir en Google Maps</button>
+                            <button class="btn-primary" id="shareLocationBtn" style="width: 100%; margin-top: 1rem;">🗺️ Abrir en Google Maps</button>
                         ` : '<p style="margin-top: 1rem; color: var(--text-light);">Ubicación GPS no proporcionada.</p>'}
                     </div>
                 </div>
@@ -698,7 +693,6 @@ document.addEventListener('DOMContentLoaded', () => {
             
             document.getElementById('modalStatusSelect').addEventListener('change', (e) => cambiarEstadoPedido(pedido.id, e.target.value));
             if(pedido.latitud && pedido.longitud) {
-                document.getElementById('showMapBtn').addEventListener('click', () => mostrarMapaPedido(pedido.latitud, pedido.longitud, pedido.nombre_cliente));
                 document.getElementById('shareLocationBtn').addEventListener('click', () => compartirUbicacion(pedido));
             }
             pedidoModal.style.display = 'block';
@@ -767,24 +761,6 @@ document.addEventListener('DOMContentLoaded', () => {
             .subscribe(status => {
                 if (status === 'SUBSCRIBED') console.log('Conectado a cambios en tiempo real para pedidos.');
             });
-    }
-
-    function mostrarMapaPedido(lat, lon, cliente) {
-        mapModal.style.display = 'block';
-        setTimeout(() => {
-            if (mapa) mapa.remove();
-            mapa = L.map('mapa').setView([lat, lon], 15);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(mapa);
-            L.marker([lat, lon]).addTo(mapa).bindPopup(`<b>Entrega para:</b><br>${cliente}`).openPopup();
-        }, 100);
-    }
-
-    function cerrarModalMapa() {
-        mapModal.style.display = 'none';
-        if (mapa) {
-            mapa.remove();
-            mapa = null;
-        }
     }
 
     async function cargarProductosAdmin() {

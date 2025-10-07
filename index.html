@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Tienda online con catálogo de productos de tecnología y panel de administración en tiempo real.">
     <title>Red51 Technology - Tienda Online</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <link rel="stylesheet" href="index.css">
 </head>
 <body>
@@ -335,25 +334,12 @@
         </div>
     </div>
 
-    <div id="mapModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="mapModalTitle">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="mapModalTitle">Ubicación de Entrega</h2>
-                <button class="close-btn" id="closeMapModalBtn" aria-label="Cerrar modal de mapa">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div id="mapa"></div>
-            </div>
-        </div>
-    </div>
-
     <footer class="footer">
         <div class="footer-logo">Red51 TECHNOLOGY</div>
         <p>2025 Red51 Technology. Todos los derechos reservados.</p>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script type="module" src="index.tsx"></script>
 </body>
 </html>

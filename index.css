@@ -921,12 +921,6 @@ body {
 .status-select.entregado { background-color: var(--success); }
 .status-select.cancelado { background-color: var(--danger); }
 
-#mapa {
-    height: 450px;
-    width: 100%;
-    border-radius: 12px;
-}
-
 .pedidos-table tr.row-updated {
     animation: highlight-row 3s ease-out;
 }
