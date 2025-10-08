@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let estadoPedidoActual = 'todos';
     let pedidosChannel = null;
     let isSubmitting = false; // Guard to prevent double submissions
-    const estadosPosibles = ['cotizacion', 'pendiente_pago', 'pago_confirmado', 'en_preparacion', 'enviado', 'entregado', 'cancelado'];
+    const estadosPosibles = ['pendiente_pago', 'pago_confirmado', 'en_preparacion', 'enviado', 'entregado', 'cancelado'];
 
     // --- DOM ELEMENTS ---
     const tiendaView = document.getElementById('tiendaView');
@@ -98,7 +98,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Event Delegation for dynamic content
         categoryFilter.addEventListener('click', handleCategoryFilter);
         productsGrid.addEventListener('click', handleProductGridClick);
-        document.getElementById('cartContent').addEventListener('click', handleCartActions);
+        document.getElementById('cartContent').addEventListener('submit', handleCheckoutSubmit); // <-- The one true submit handler
+        document.getElementById('cartContent').addEventListener('click', handleCartActions); // For non-submit actions
         document.getElementById('pedidosFilterContainer').addEventListener('click', handlePedidosFilter);
         document.getElementById('adminPedidosTable').addEventListener('click', handlePedidosTableClick);
         document.getElementById('adminPedidosTable').addEventListener('change', handlePedidosTableChange);
@@ -141,6 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Handles non-submit actions inside the cart (qty, remove)
     function handleCartActions(event) {
         const target = event.target;
         if (target.matches('.qty-btn')) {
@@ -150,11 +152,35 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (target.matches('.remove-btn')) {
             const index = parseInt(target.dataset.index, 10);
             eliminarItem(index);
-        } else if (target.id === 'btnCotizacion') {
-            realizarPedido('cotizacion');
-        } else if (target.id === 'btnComprar') {
-            realizarPedido('comprar');
         }
+    }
+    
+    // The one true handler for submitting the order form
+    async function handleCheckoutSubmit(event) {
+        event.preventDefault(); // Prevent default form submission immediately
+
+        if (isSubmitting) {
+            console.warn("Submit already in progress.");
+            return;
+        }
+
+        const form = event.target;
+        if (!form || form.id !== 'checkoutForm' || !form.checkValidity()) {
+            if (form) form.reportValidity();
+            return;
+        }
+        
+        isSubmitting = true;
+
+        const submitter = event.submitter;
+        const buyButton = document.getElementById('btnComprar');
+        
+        if(buyButton) buyButton.disabled = true;
+        if(submitter) submitter.innerHTML = `<span class="spinner-inline"></span> Procesando...`;
+
+        await realizarPedido();
+        
+        // Resetting state is now handled within realizarPedido's finally block
     }
 
     function handlePedidosTableClick(event) {
@@ -427,7 +453,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <span class="cart-total-label">Total:</span>
                 <span class="cart-total-amount">S/ ${total.toFixed(2)}</span>
             </div>
-            <form id="checkoutForm" class="checkout-form" onsubmit="return false;">
+            <form id="checkoutForm" class="checkout-form">
                 <div class="form-group"><label>Nombre Completo</label><input type="text" id="nombreCliente" required></div>
                 <div class="form-group"><label>Telefono (sin prefijo +51)</label><input type="tel" id="telefonoCliente" required placeholder="905820448"></div>
                 <div class="form-group"><label>Email (Opcional)</label><input type="email" id="emailCliente" placeholder="cliente@ejemplo.com"></div>
@@ -436,8 +462,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <p class="form-hint">La ubicación exacta se coordinará por WhatsApp una vez confirmado el pago.</p>
                 </div>
                 <div class="checkout-actions">
-                    <button type="button" class="btn-secondary" id="btnCotizacion">Generar Cotización</button>
-                    <button type="button" class="btn-primary" id="btnComprar">Comprar Ahora</button>
+                    <button type="submit" class="btn-primary" id="btnComprar">Comprar Ahora</button>
                 </div>
             </form>`;
     }
@@ -455,31 +480,10 @@ document.addEventListener('DOMContentLoaded', () => {
         renderizarCarrito();
     }
     
-    async function realizarPedido(action) {
-        if (isSubmitting) {
-            console.warn("Submit already in progress.");
-            return;
-        }
-
-        const form = document.getElementById('checkoutForm');
-        if (!form || !form.checkValidity()) {
-            if (form) form.reportValidity();
-            else console.error("Checkout form not found");
-            return;
-        }
-
-        isSubmitting = true;
-        const quoteButton = document.getElementById('btnCotizacion');
-        const buyButton = document.getElementById('btnComprar');
-        const submitter = action === 'cotizacion' ? quoteButton : buyButton;
-        
-        // Immediately disable both buttons and show spinner
-        if(quoteButton) quoteButton.disabled = true;
-        if(buyButton) buyButton.disabled = true;
-        if(submitter) submitter.innerHTML = `<span class="spinner-inline"></span> Procesando...`;
-
+    async function realizarPedido() {
         const total = carrito.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
         const direccion = document.getElementById('direccionCliente').value;
+        const buyButton = document.getElementById('btnComprar');
         
         const pedidoData = {
             nombre_cliente: document.getElementById('nombreCliente').value,
@@ -493,7 +497,7 @@ document.addEventListener('DOMContentLoaded', () => {
             })),
             total: parseFloat(total),
             cantidad_items: carrito.reduce((sum, item) => sum + item.cantidad, 0),
-            estado: action === 'cotizacion' ? 'cotizacion' : 'pendiente_pago',
+            estado: 'pendiente_pago',
             latitud: null,
             longitud: null
         };
@@ -514,35 +518,24 @@ document.addEventListener('DOMContentLoaded', () => {
             const successTitle = document.querySelector('#successMessage h3');
             const successText = document.querySelector('#successMessage p');
 
-            if (action === 'cotizacion') {
-                successTitle.textContent = 'Cotización Generada con Éxito';
-                successText.textContent = 'Hemos recibido tu solicitud de cotización. Te contactaremos pronto con los detalles.';
-            } else {
-                successTitle.textContent = 'Pedido Realizado con Éxito';
-                successText.textContent = 'Hemos recibido tu pedido. Te contactaremos por WhatsApp para coordinar el pago y la entrega.';
-            }
+            successTitle.textContent = 'Pedido Realizado con Éxito';
+            successText.textContent = 'Hemos recibido tu pedido. Te contactaremos por WhatsApp para coordinar el pago y la entrega.';
 
             document.getElementById('cartContent').style.display = 'none';
             document.getElementById('successMessage').style.display = 'block';
         } catch (error) {
             let message = 'Error al procesar la solicitud: ' + error.message;
-            // Postgres unique_violation code
-            if (error.code === '23505') { 
+            if (error.code === '23505' || error.message.includes('duplicate key')) { 
                  message = 'Error: Este pedido parece ser un duplicado y fue bloqueado. Si crees que es un error, contacta a soporte.';
             }
             mostrarNotificacion(message, 'error');
-
-            // Re-enable buttons on failure
-            if(quoteButton) {
-                quoteButton.disabled = false;
-                quoteButton.textContent = 'Generar Cotización';
-            }
+        } finally {
+            // ALWAYS re-enable buttons and release guard
             if(buyButton) {
                 buyButton.disabled = false;
                 buyButton.textContent = 'Comprar Ahora';
             }
-        } finally {
-            isSubmitting = false; // Release the guard
+            isSubmitting = false; 
         }
     }
 
