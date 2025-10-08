@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let estadoPedidoActual = 'todos';
     let pedidosChannel = null;
     let isSubmitting = false; // Guard to prevent double submissions
-    const estadosPosibles = ['pendiente_pago', 'pago_confirmado', 'en_preparacion', 'enviado', 'entregado', 'cancelado'];
+    const estadosPosibles = ['cotizacion', 'pendiente_pago', 'pago_confirmado', 'en_preparacion', 'enviado', 'entregado', 'cancelado'];
 
     // --- DOM ELEMENTS ---
     const tiendaView = document.getElementById('tiendaView');
@@ -150,8 +150,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (target.matches('.remove-btn')) {
             const index = parseInt(target.dataset.index, 10);
             eliminarItem(index);
-        } else if (target.matches('#getLocationBtn')) {
-            obtenerUbicacionCliente(target);
         }
     }
 
@@ -293,18 +291,6 @@ document.addEventListener('DOMContentLoaded', () => {
         mostrarTienda();
     }
 
-    async function geocodeDireccion(direccion) {
-        try {
-            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(direccion)}`);
-            if (!response.ok) throw new Error('Servicio de geocodificación no disponible');
-            const data = await response.json();
-            return (data && data.length > 0) ? { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) } : null;
-        } catch (error) {
-            console.warn("No se pudo geocodificar la dirección:", error.message);
-            return null;
-        }
-    }
-
     // --- UI & VIEW FUNCTIONS ---
     function mostrarTienda() {
         tiendaView.style.display = 'block';
@@ -442,13 +428,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="form-group"><label>Telefono (sin prefijo +51)</label><input type="tel" id="telefonoCliente" required placeholder="905820448"></div>
                 <div class="form-group"><label>Email (Opcional)</label><input type="email" id="emailCliente" placeholder="cliente@ejemplo.com"></div>
                 <div class="form-group">
-                    <label>Direccion de Entrega</label><textarea id="direccionCliente" required></textarea>
+                    <label>Direccion Referencial de Entrega (Opcional)</label><textarea id="direccionCliente"></textarea>
+                    <p class="form-hint">La ubicación exacta se coordinará por WhatsApp una vez confirmado el pago.</p>
                 </div>
-                 <button type="button" class="btn-secondary" id="getLocationBtn" style="width:100%; margin-bottom: 1rem;">📍 Usar mi ubicación actual</button>
-                <p id="locationStatus" class="form-hint" style="text-align:center; min-height: 1.2em;"></p>
-                <input type="hidden" id="latitudCliente">
-                <input type="hidden" id="longitudCliente">
-                <button type="submit" class="btn-primary" id="btnRealizarPedido">Realizar Pedido</button>
+                <div class="checkout-actions">
+                    <button type="submit" class="btn-secondary" name="action" value="cotizacion">Generar Cotización</button>
+                    <button type="submit" class="btn-primary" name="action" value="comprar">Comprar Ahora</button>
+                </div>
             </form>`;
         
         // Attach the event listener directly to the newly created form
@@ -471,72 +457,20 @@ document.addEventListener('DOMContentLoaded', () => {
         renderizarCarrito();
     }
     
-    function obtenerUbicacionCliente(button) {
-        const statusEl = document.getElementById('locationStatus');
-        if (!navigator.geolocation) {
-            statusEl.textContent = 'Geolocalización no es soportada por tu navegador.';
-            statusEl.style.color = 'var(--danger)';
-            return;
-        }
-
-        button.disabled = true;
-        statusEl.textContent = 'Obteniendo ubicación...';
-        statusEl.style.color = 'var(--text-light)';
-
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const lat = position.coords.latitude;
-                const lon = position.coords.longitude;
-                document.getElementById('latitudCliente').value = lat;
-                document.getElementById('longitudCliente').value = lon;
-                statusEl.textContent = '✓ Ubicación obtenida con éxito.';
-                statusEl.style.color = 'var(--success)';
-                button.textContent = 'Ubicación Obtenida';
-            },
-            (error) => {
-                let message = 'Error al obtener la ubicación: ';
-                switch (error.code) {
-                    case error.PERMISSION_DENIED:
-                        message += 'Permiso denegado.';
-                        break;
-                    case error.POSITION_UNAVAILABLE:
-                        message += 'Información de ubicación no disponible.';
-                        break;
-                    case error.TIMEOUT:
-                        message += 'La solicitud de ubicación ha caducado.';
-                        break;
-                    default:
-                        message += 'Un error desconocido ha ocurrido.';
-                        break;
-                }
-                statusEl.textContent = message;
-                statusEl.style.color = 'var(--danger)';
-                button.disabled = false;
-            }
-        );
-    }
-    
     async function realizarPedido(event) {
         event.preventDefault();
         if (isSubmitting) return;
         isSubmitting = true;
 
-        const btnPedido = document.getElementById('btnRealizarPedido');
-        btnPedido.disabled = true;
-        btnPedido.textContent = 'Procesando pedido...';
+        const submitter = event.submitter;
+        const action = submitter.value; // 'cotizacion' or 'comprar'
+        
+        submitter.disabled = true;
+        submitter.textContent = 'Procesando...';
         
         const total = carrito.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
         const direccion = document.getElementById('direccionCliente').value;
-        const lat = document.getElementById('latitudCliente').value;
-        const lon = document.getElementById('longitudCliente').value;
         
-        let coords = null;
-        if (lat && lon) {
-            coords = { lat: parseFloat(lat), lon: parseFloat(lon) };
-        } else {
-            coords = await geocodeDireccion(direccion);
-        }
-
         const pedidoData = {
             nombre_cliente: document.getElementById('nombreCliente').value,
             telefono_cliente: document.getElementById('telefonoCliente').value,
@@ -549,9 +483,9 @@ document.addEventListener('DOMContentLoaded', () => {
             })),
             total: parseFloat(total),
             cantidad_items: carrito.reduce((sum, item) => sum + item.cantidad, 0),
-            estado: 'pendiente_pago',
-            latitud: coords ? coords.lat : null,
-            longitud: coords ? coords.lon : null
+            estado: action === 'cotizacion' ? 'cotizacion' : 'pendiente_pago',
+            latitud: null,
+            longitud: null
         };
         
         try {
@@ -570,12 +504,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.warn('El pedido se guardó, pero el webhook de n8n falló:', webhookError);
             }
 
+            const successTitle = document.querySelector('#successMessage h3');
+            const successText = document.querySelector('#successMessage p');
+
+            if (action === 'cotizacion') {
+                successTitle.textContent = 'Cotización Generada con Éxito';
+                successText.textContent = 'Hemos recibido tu solicitud de cotización. Te contactaremos pronto con los detalles.';
+            } else {
+                successTitle.textContent = 'Pedido Realizado con Éxito';
+                successText.textContent = 'Hemos recibido tu pedido. Te contactaremos por WhatsApp para coordinar el pago y la entrega.';
+            }
+
             document.getElementById('cartContent').style.display = 'none';
             document.getElementById('successMessage').style.display = 'block';
         } catch (error) {
-            mostrarNotificacion('Error al realizar el pedido: ' + error.message, 'error');
-            btnPedido.disabled = false;
-            btnPedido.textContent = 'Realizar Pedido';
+            mostrarNotificacion('Error al procesar la solicitud: ' + error.message, 'error');
+            submitter.disabled = false;
+            submitter.textContent = action === 'cotizacion' ? 'Generar Cotización' : 'Comprar Ahora';
         } finally {
             isSubmitting = false; // Unlock submission
         }

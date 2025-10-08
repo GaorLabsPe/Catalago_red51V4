@@ -549,6 +549,17 @@ body {
     transform: none;
 }
 
+.checkout-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.checkout-actions .btn-primary, .checkout-actions .btn-secondary {
+    flex: 1;
+    width: auto;
+}
+
 .btn-secondary {
     background: var(--white);
     border: 1px solid var(--border-color);
@@ -914,6 +925,7 @@ body {
     outline-offset: -2px;
 }
 
+.status-select.cotizacion { background-color: var(--text-light); }
 .status-select.pendiente_pago { background-color: var(--warning); }
 .status-select.pago_confirmado { background-color: var(--info); }
 .status-select.en_preparacion { background-color: var(--secondary); }
