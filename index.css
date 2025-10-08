@@ -525,6 +525,9 @@ body {
 }
 
 .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     width: 100%;
     background: var(--secondary);
     color: var(--white);
@@ -561,6 +564,9 @@ body {
 }
 
 .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     background: var(--white);
     border: 1px solid var(--border-color);
     color: var(--primary);
@@ -832,6 +838,18 @@ body {
     to {
         transform: rotate(360deg);
     }
+}
+
+.spinner-inline {
+    width: 16px;
+    height: 16px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 8px;
+    animation: spin 0.75s linear infinite;
 }
 
 .footer {

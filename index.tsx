@@ -459,15 +459,20 @@ document.addEventListener('DOMContentLoaded', () => {
     
     async function realizarPedido(event) {
         event.preventDefault();
-        if (isSubmitting) return;
-        isSubmitting = true;
+        if (isSubmitting) return; // Primary guard
 
+        isSubmitting = true;
+        const form = event.target;
+        const quoteButton = form.querySelector('button[value="cotizacion"]');
+        const buyButton = form.querySelector('button[value="comprar"]');
         const submitter = event.submitter;
-        const action = submitter.value; // 'cotizacion' or 'comprar'
-        
-        submitter.disabled = true;
-        submitter.textContent = 'Procesando...';
-        
+        const action = submitter.value;
+
+        // Immediately disable both buttons and show spinner
+        quoteButton.disabled = true;
+        buyButton.disabled = true;
+        submitter.innerHTML = `<span class="spinner-inline"></span> Procesando...`;
+
         const total = carrito.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
         const direccion = document.getElementById('direccionCliente').value;
         
@@ -492,17 +497,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const { error } = await supabaseClient.from('pedidos').insert([pedidoData]);
             if (error) throw error;
 
-            // Enviar a webhook de n8n
-            try {
-                const webhookUrl = 'https://webhook.red51.site/webhook/pedidos_red51';
-                await fetch(webhookUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(pedidoData)
-                });
-            } catch (webhookError) {
+            // Send to webhook, non-blocking for user
+            fetch('https://webhook.red51.site/webhook/pedidos_red51', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(pedidoData)
+            }).catch(webhookError => {
                 console.warn('El pedido se guardó, pero el webhook de n8n falló:', webhookError);
-            }
+            });
 
             const successTitle = document.querySelector('#successMessage h3');
             const successText = document.querySelector('#successMessage p');
@@ -519,12 +521,16 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('successMessage').style.display = 'block';
         } catch (error) {
             mostrarNotificacion('Error al procesar la solicitud: ' + error.message, 'error');
-            submitter.disabled = false;
-            submitter.textContent = action === 'cotizacion' ? 'Generar Cotización' : 'Comprar Ahora';
+            // Re-enable buttons on failure
+            quoteButton.disabled = false;
+            buyButton.disabled = false;
+            quoteButton.textContent = 'Generar Cotización';
+            buyButton.textContent = 'Comprar Ahora';
         } finally {
-            isSubmitting = false; // Unlock submission
+            isSubmitting = false; // Release the guard
         }
     }
+
 
     function cerrarYLimpiar() {
         carrito = [];
